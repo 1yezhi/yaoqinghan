@@ -286,7 +286,7 @@ Component({
     fail() {
       if (this.destroyed || this.failed) return
       this.failed = true
-      this.triggerEvent('error')
+      this.triggerEvent('envelopeerror')
     },
 
     destroy() {

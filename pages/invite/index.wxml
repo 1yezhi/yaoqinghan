@@ -32,7 +32,7 @@
       theme="{{themeId}}"
       motion="{{config.theme.motion}}"
       bind:open="onOpen"
-      bind:error="onEnvelopeError"
+      bind:envelopeerror="onEnvelopeError"
     />
 
     <view
