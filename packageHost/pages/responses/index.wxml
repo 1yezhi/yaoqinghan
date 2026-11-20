@@ -1,0 +1,65 @@
+<view class="page-shell responses-page">
+  <navigation-bar title="回执名单" back="{{true}}" color="#2A2521" background="#F6F1E8"></navigation-bar>
+
+  <scroll-view class="responses-scroll" scroll-y>
+    <view class="responses-hero">
+      <text class="responses-kicker">RSVP LIST</text>
+      <text class="responses-title serif">{{invitationTitle}}</text>
+      <text class="responses-sub">本机回执 · 共 {{summary.total}} 条</text>
+    </view>
+
+    <view class="summary-grid">
+      <view class="summary-card">
+        <text class="summary-num">{{summary.guests}}</text>
+        <text class="summary-label">出席人数</text>
+      </view>
+      <view class="summary-card">
+        <text class="summary-num">{{summary.attending}}</text>
+        <text class="summary-label">出席宾客</text>
+      </view>
+      <view class="summary-card">
+        <text class="summary-num">{{summary.declined}}</text>
+        <text class="summary-label">不出席</text>
+      </view>
+    </view>
+
+    <view class="filter-bar">
+      <view
+        class="filter-tab {{filter === item.key ? 'is-active' : ''}}"
+        wx:for="{{filterTabs}}"
+        wx:key="key"
+        data-key="{{item.key}}"
+        bindtap="onFilter"
+      >
+        <text>{{item.label}}</text>
+        <text class="filter-count">{{item.count}}</text>
+      </view>
+    </view>
+
+    <view class="response-list" wx:if="{{filtered.length}}">
+      <view class="response-card" wx:for="{{filtered}}" wx:key="id">
+        <view class="response-head">
+          <text class="response-name serif">{{item.name}}</text>
+          <text class="response-status {{item.attendance}}">{{item.attendanceText}}</text>
+        </view>
+        <view class="response-meta">
+          <text>{{item.phoneMasked}}</text>
+          <text>{{item.timeText}}</text>
+        </view>
+        <text class="response-diet" wx:if="{{item.dietary}}">饮食：{{item.dietary}}</text>
+        <text class="response-message" wx:if="{{item.message}}">“{{item.message}}”</text>
+      </view>
+    </view>
+
+    <view class="empty-state" wx:else>还没有符合条件的回执。</view>
+
+    <view class="responses-note">
+      <text>当前回执保存在本机，用于第一版流程验证。接入云开发后，宾客在不同设备提交的回执会汇总到这里；手机号默认脱敏展示。</text>
+    </view>
+
+    <view class="responses-actions">
+      <button class="ghost-btn" bindtap="onCopyCsv">复制名单</button>
+    </view>
+    <view class="safe-bottom"></view>
+  </scroll-view>
+</view>

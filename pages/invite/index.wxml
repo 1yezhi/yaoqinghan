@@ -1,0 +1,465 @@
+<view class="invite-page theme-{{themeId}}">
+  <block wx:if="{{loading}}">
+    <view class="loading-stage">
+      <view class="loading-envelope">
+        <view class="loading-flap"></view>
+        <view class="loading-seal"></view>
+      </view>
+      <text class="loading-text">正在准备邀请函</text>
+      <text class="loading-sub">请稍候</text>
+    </view>
+  </block>
+
+  <block wx:elif="{{error}}">
+    <invite-state
+      eyebrow="INVITATION"
+      title="{{errorTitle}}"
+      description="{{errorDesc}}"
+      action-text="{{errorActionText}}"
+      theme="{{themeId}}"
+      bind:action="onErrorAction"
+    />
+  </block>
+
+  <block wx:else>
+    <envelope-cover
+      wx:if="{{!opened}}"
+      title="{{config.title}}"
+      hosts="{{envelopeHosts}}"
+      date-text="{{dateText}}"
+      seal="{{seal}}"
+      opening="{{opening}}"
+      theme="{{themeId}}"
+      motion="{{config.theme.motion}}"
+      bind:open="onOpen"
+      bind:skip="onSkip"
+    />
+
+    <view
+      class="invite-experience {{config.theme.motion === 'reduced' ? 'motion-reduced' : ''}}"
+      wx:if="{{opened}}"
+    >
+      <view class="read-progress">
+        <view class="read-progress-fill" style="width: {{progress}}%;"></view>
+      </view>
+      <view class="preview-badge" wx:if="{{preview}}">预览模式</view>
+
+      <music-button
+        wx:if="{{config.music.src}}"
+        playing="{{musicPlaying}}"
+        top="{{musicTop}}"
+        bind:toggle="toggleMusic"
+      />
+
+      <scroll-view
+        class="invite-scroll"
+        scroll-y
+        show-scrollbar="{{false}}"
+        bindscroll="onScroll"
+      >
+        <view class="invite-flow">
+          <block wx:for="{{blocks}}" wx:for-item="block" wx:key="id">
+            <view
+              id="block-{{block.id}}"
+              class="flow-block block-{{block.kind}} density-{{block.density}} {{block.visible ? 'is-visible' : ''}}"
+            >
+              <!-- 首屏 -->
+              <block wx:if="{{block.kind === 'hero'}}">
+                <view class="hero-stage {{block.short ? 'is-short' : ''}} {{block.cover ? '' : 'is-bare'}}">
+                  <image
+                    wx:if="{{block.cover}}"
+                    class="hero-image"
+                    src="{{block.cover}}"
+                    mode="aspectFill"
+                  />
+                  <view wx:else class="hero-fallback"></view>
+                  <view class="hero-overlay"></view>
+                  <view wx:if="{{!block.cover}}" class="hero-ornament">
+                    <view class="ornament-arch"></view>
+                    <view class="ornament-arch ornament-arch-inner"></view>
+                    <text
+                      class="hero-monogram serif anim"
+                      style="transition-delay: 120ms;"
+                    >{{block.monogram}}</text>
+                  </view>
+                  <view class="hero-content {{block.compact ? 'is-compact' : ''}}">
+                    <text class="eyebrow anim" style="transition-delay: 100ms;">{{block.eyebrow}}</text>
+                    <text class="hero-names serif anim {{block.titleClass}}" style="transition-delay: 180ms;">{{block.title}}</text>
+                    <view class="hero-rule anim" style="transition-delay: 280ms;"></view>
+                    <text
+                      wx:if="{{block.subtitle}}"
+                      class="hero-subtitle anim"
+                      style="transition-delay: 320ms;"
+                    >{{block.subtitle}}</text>
+                    <view class="hero-date-row anim" style="transition-delay: 400ms;">
+                      <text class="hero-date">{{dateText}}</text>
+                      <text class="hero-dot">·</text>
+                      <text class="hero-weekday">{{weekdayText}}</text>
+                      <text class="hero-dot">·</text>
+                      <text>{{timeText}}</text>
+                    </view>
+                    <text
+                      wx:if="{{cityLine}}"
+                      class="hero-venue anim"
+                      style="transition-delay: 460ms;"
+                    >{{cityLine}}</text>
+                  </view>
+                  <view class="scroll-cue anim" style="transition-delay: 700ms;">
+                    <text class="cue-text">上滑阅读</text>
+                    <view class="cue-line"></view>
+                  </view>
+                </view>
+              </block>
+
+              <!-- 邀请正文（短故事会并进同一张卡片） -->
+              <block wx:elif="{{block.kind === 'letter'}}">
+                <view class="paper-card letter-card">
+                  <text class="section-kicker anim">A LETTER FOR YOU</text>
+                  <text class="section-title serif anim" style="transition-delay: 60ms;">{{block.title}}</text>
+                  <view class="section-rule anim" style="transition-delay: 120ms;"></view>
+
+                  <view class="clamp-wrap">
+                    <view class="letter-body {{block.clampable && !expanded.letter ? 'is-clamped' : ''}}">
+                      <text
+                        class="letter-paragraph anim"
+                        wx:for="{{block.paragraphs}}"
+                        wx:for-item="paragraph"
+                        wx:for-index="pIndex"
+                        wx:key="*this"
+                        style="transition-delay: {{140 + pIndex * 70}}ms;"
+                      >{{paragraph}}</text>
+                    </view>
+                    <view class="clamp-mask" wx:if="{{block.clampable && !expanded.letter}}"></view>
+                  </view>
+                  <view
+                    class="more-row"
+                    wx:if="{{block.clampable}}"
+                    data-key="letter"
+                    bindtap="toggleLetter"
+                  >
+                    <text>{{expanded.letter ? '收起' : '阅读全文'}}</text>
+                    <text class="more-arrow">{{expanded.letter ? '↑' : '↓'}}</text>
+                  </view>
+
+                  <block wx:if="{{block.story}}">
+                    <view class="merged-story density-{{block.story.density}}">
+                      <view class="inner-divider"></view>
+                      <text class="inner-kicker anim">OUR STORY</text>
+                      <text class="inner-title serif anim">{{block.story.title}}</text>
+                      <view class="clamp-wrap">
+                        <view class="letter-body {{block.story.clampable && !expanded.story ? 'is-clamped' : ''}}">
+                          <text
+                            class="letter-paragraph anim"
+                            wx:for="{{block.story.paragraphs}}"
+                            wx:for-item="paragraph"
+                            wx:for-index="sIndex"
+                            wx:key="*this"
+                            style="transition-delay: {{120 + sIndex * 70}}ms;"
+                          >{{paragraph}}</text>
+                        </view>
+                        <view
+                          class="clamp-mask"
+                          wx:if="{{block.story.clampable && !expanded.story}}"
+                        ></view>
+                      </view>
+                      <view
+                        class="more-row"
+                        wx:if="{{block.story.clampable}}"
+                        data-key="story"
+                        bindtap="toggleLetter"
+                      >
+                        <text>{{expanded.story ? '收起' : '阅读全文'}}</text>
+                        <text class="more-arrow">{{expanded.story ? '↑' : '↓'}}</text>
+                      </view>
+                    </view>
+                  </block>
+
+                  <text
+                    wx:if="{{block.signature}}"
+                    class="letter-signature serif anim"
+                    style="transition-delay: 260ms;"
+                  >{{block.signature}}</text>
+                </view>
+              </block>
+
+              <!-- 独立故事 -->
+              <block wx:elif="{{block.kind === 'story'}}">
+                <view class="story-wrap">
+                  <view class="story-copy">
+                    <text class="section-kicker anim">OUR STORY</text>
+                    <text class="section-title serif anim" style="transition-delay: 60ms;">{{block.title}}</text>
+                    <view class="section-rule anim" style="transition-delay: 120ms;"></view>
+                    <block wx:if="{{block.paragraphs.length}}">
+                      <view class="clamp-wrap">
+                        <view class="letter-body {{block.clampable && !expanded.story ? 'is-clamped' : ''}}">
+                          <text
+                            class="letter-paragraph anim"
+                            wx:for="{{block.paragraphs}}"
+                            wx:for-item="paragraph"
+                            wx:for-index="stIndex"
+                            wx:key="*this"
+                            style="transition-delay: {{140 + stIndex * 70}}ms;"
+                          >{{paragraph}}</text>
+                        </view>
+                        <view
+                          class="clamp-mask is-on-bg"
+                          wx:if="{{block.clampable && !expanded.story}}"
+                        ></view>
+                      </view>
+                      <view
+                        class="more-row"
+                        wx:if="{{block.clampable}}"
+                        data-key="story"
+                        bindtap="toggleLetter"
+                      >
+                        <text>{{expanded.story ? '收起' : '阅读全文'}}</text>
+                        <text class="more-arrow">{{expanded.story ? '↑' : '↓'}}</text>
+                      </view>
+                    </block>
+                  </view>
+                  <image
+                    wx:if="{{block.photo}}"
+                    class="story-photo anim"
+                    src="{{block.photo}}"
+                    mode="aspectFill"
+                    lazy-load
+                    style="transition-delay: 180ms;"
+                  />
+                </view>
+              </block>
+
+              <!-- 相册：1 张整幅、2–3 张网格、4 张以上横向滑动 -->
+              <block wx:elif="{{block.kind === 'gallery'}}">
+                <view class="section-head">
+                  <text class="section-kicker anim">MOMENTS</text>
+                  <text class="section-title serif anim" style="transition-delay: 60ms;">{{block.title}}</text>
+                  <view class="section-rule anim" style="transition-delay: 120ms;"></view>
+                </view>
+
+                <view wx:if="{{block.mode != 'strip'}}" class="gallery-grid">
+                  <view
+                    class="gallery-cell {{block.mode === 'single' ? 'is-single' : ''}} {{block.count === 3 && index === 0 ? 'is-lead' : ''}} anim"
+                    wx:for="{{block.photos}}"
+                    wx:for-item="photo"
+                    wx:key="itemKey"
+                    data-url="{{photo.url}}"
+                    bindtap="onPreviewPhoto"
+                    style="transition-delay: {{index * 70}}ms;"
+                  >
+                    <image class="gallery-image" src="{{photo.thumb}}" mode="aspectFill" lazy-load />
+                    <text class="gallery-caption" wx:if="{{photo.caption}}">{{photo.caption}}</text>
+                  </view>
+                </view>
+
+                <scroll-view
+                  wx:else
+                  class="gallery-scroll"
+                  scroll-x
+                  show-scrollbar="{{false}}"
+                >
+                  <view class="gallery-track">
+                    <view
+                      class="gallery-item anim"
+                      wx:for="{{block.photos}}"
+                      wx:for-item="photo"
+                      wx:key="itemKey"
+                      data-url="{{photo.url}}"
+                      bindtap="onPreviewPhoto"
+                      style="transition-delay: {{index * 60}}ms;"
+                    >
+                      <image class="gallery-image" src="{{photo.thumb}}" mode="aspectFill" lazy-load />
+                      <text class="gallery-caption" wx:if="{{photo.caption}}">{{photo.caption}}</text>
+                    </view>
+                  </view>
+                </scroll-view>
+                <text class="gallery-hint" wx:if="{{block.mode === 'strip'}}">左右滑动查看更多</text>
+              </block>
+
+              <!-- 流程 -->
+              <block wx:elif="{{block.kind === 'schedule'}}">
+                <view class="section-head">
+                  <text class="section-kicker anim">THE DAY</text>
+                  <text class="section-title serif anim" style="transition-delay: 60ms;">{{block.schedule.title}}</text>
+                  <view class="section-rule anim" style="transition-delay: 120ms;"></view>
+                </view>
+                <view class="timeline {{block.schedule.hasTime ? '' : 'is-plain'}} {{block.schedule.hasNote ? '' : 'is-tight'}}">
+                  <view
+                    class="timeline-item anim"
+                    wx:for="{{block.schedule.items}}"
+                    wx:for-item="entry"
+                    wx:key="itemKey"
+                    style="transition-delay: {{index * 60}}ms;"
+                  >
+                    <view class="timeline-left" wx:if="{{block.schedule.hasTime}}">
+                      <text class="timeline-time">{{entry.time || '·'}}</text>
+                      <view class="timeline-dot"></view>
+                    </view>
+                    <view class="timeline-body">
+                      <text class="timeline-title">{{entry.title || entry.time}}</text>
+                      <text class="timeline-note" wx:if="{{entry.note}}">{{entry.note}}</text>
+                    </view>
+                  </view>
+                </view>
+              </block>
+
+              <!-- 流程 + 地址合并卡（无坐标时更紧凑） -->
+              <block wx:elif="{{block.kind === 'details'}}">
+                <view class="paper-card details-card">
+                  <text class="section-kicker anim">THE DAY</text>
+                  <text class="section-title serif anim" style="transition-delay: 60ms;">{{block.schedule.title}}</text>
+                  <view class="section-rule anim" style="transition-delay: 120ms;"></view>
+                  <view class="timeline {{block.schedule.hasTime ? '' : 'is-plain'}} {{block.schedule.hasNote ? '' : 'is-tight'}}">
+                    <view
+                      class="timeline-item anim"
+                      wx:for="{{block.schedule.items}}"
+                      wx:for-item="entry"
+                      wx:key="itemKey"
+                      style="transition-delay: {{index * 60}}ms;"
+                    >
+                      <view class="timeline-left" wx:if="{{block.schedule.hasTime}}">
+                        <text class="timeline-time">{{entry.time || '·'}}</text>
+                        <view class="timeline-dot"></view>
+                      </view>
+                      <view class="timeline-body">
+                        <text class="timeline-title">{{entry.title || entry.time}}</text>
+                        <text class="timeline-note" wx:if="{{entry.note}}">{{entry.note}}</text>
+                      </view>
+                    </view>
+                  </view>
+
+                  <view class="inner-divider"></view>
+                  <text class="section-kicker anim">THE PLACE</text>
+                  <view class="venue-inline">
+                    <text class="venue-name serif">{{block.venue.name || '地点'}}</text>
+                    <text class="venue-address" wx:if="{{block.venue.address || block.venue.city}}">{{block.venue.address || block.venue.city}}</text>
+                    <view class="venue-actions">
+                      <text class="venue-copy" bindtap="copyAddress">复制地址</text>
+                    </view>
+                  </view>
+                </view>
+              </block>
+
+              <!-- 地点 -->
+              <block wx:elif="{{block.kind === 'venue'}}">
+                <view class="section-head">
+                  <text class="section-kicker anim">THE PLACE</text>
+                  <text class="section-title serif anim" style="transition-delay: 60ms;">地点</text>
+                  <view class="section-rule anim" style="transition-delay: 120ms;"></view>
+                </view>
+                <view class="venue-card anim {{block.venue.hasCoords ? 'has-map' : 'is-flat'}}" style="transition-delay: 120ms;">
+                  <view class="venue-map" wx:if="{{block.venue.hasCoords}}">
+                    <view class="map-grid"></view>
+                    <view class="map-road road-one"></view>
+                    <view class="map-road road-two"></view>
+                    <view class="map-road road-three"></view>
+                    <view class="map-pin">
+                      <view class="pin-pulse"></view>
+                      <view class="pin-dot"></view>
+                    </view>
+                    <text class="map-note">地图示意图</text>
+                  </view>
+                  <view class="venue-info">
+                    <view class="venue-heading">
+                      <text class="venue-name serif">{{block.venue.name || '地点'}}</text>
+                      <text class="venue-city" wx:if="{{block.venue.city}}">{{block.venue.city}}</text>
+                    </view>
+                    <text class="venue-address">{{block.venue.address || '具体地址请向发起人确认'}}</text>
+                    <view class="venue-actions">
+                      <button
+                        wx:if="{{block.venue.hasCoords}}"
+                        class="venue-btn"
+                        bindtap="onNavigate"
+                      >打开地图</button>
+                      <button wx:else class="venue-btn" bindtap="copyAddress">复制地址</button>
+                      <text
+                        wx:if="{{block.venue.hasCoords}}"
+                        class="venue-copy"
+                        bindtap="copyAddress"
+                      >复制地址</text>
+                    </view>
+                  </view>
+                </view>
+              </block>
+
+              <!-- 倒计时 / 回执 / 致谢合并为收尾卡 -->
+              <block wx:elif="{{block.kind === 'closing'}}">
+                <view class="closing-wrap">
+                  <view class="paper-card closing-card {{block.parts === 1 ? 'is-single' : ''}}">
+                    <block wx:if="{{block.countdown}}">
+                      <text class="section-kicker anim">COUNTDOWN</text>
+                      <text class="closing-title serif anim" style="transition-delay: 60ms;">{{block.countdown.title}}</text>
+                      <view class="countdown-rule anim" style="transition-delay: 120ms;"></view>
+                      <countdown
+                        target="{{config.event.startAt}}"
+                        ended-text="{{block.countdown.endedText}}"
+                      />
+                      <text class="closing-date anim" style="transition-delay: 200ms;">{{dateText}} · {{timeText}}</text>
+                    </block>
+
+                    <view class="inner-divider" wx:if="{{block.countdown && block.rsvp}}"></view>
+
+                    <block wx:if="{{block.rsvp}}">
+                      <text class="section-kicker anim">RSVP</text>
+                      <text class="closing-title serif anim" style="transition-delay: 60ms;">{{block.rsvp.title}}</text>
+                      <text
+                        class="closing-desc anim"
+                        wx:if="{{block.rsvp.description}}"
+                        style="transition-delay: 100ms;"
+                      >{{block.rsvp.description}}</text>
+                      <view class="rsvp-summary anim" wx:if="{{myRsvp}}">
+                        <text class="rsvp-summary-main">{{myRsvpText}}</text>
+                        <text class="rsvp-summary-sub">{{myRsvpSub}}</text>
+                      </view>
+                      <button class="rsvp-cta anim" bindtap="openRsvp">
+                        {{myRsvp ? '修改回执' : block.rsvp.buttonText}}
+                      </button>
+                      <text class="closing-note anim" wx:if="{{rsvpDeadlineText}}">回执截止：{{rsvpDeadlineText}}</text>
+                      <text class="closing-note anim" wx:if="{{rsvpSummary.total}}">已有 {{rsvpSummary.total}} 位宾客回复</text>
+                    </block>
+
+                    <view class="inner-divider" wx:if="{{block.rsvp && block.thanks}}"></view>
+
+                    <block wx:if="{{block.thanks}}">
+                      <text class="section-kicker anim">WITH LOVE</text>
+                      <text class="thanks-title serif anim" style="transition-delay: 60ms;">{{block.thanks.title}}</text>
+                      <text
+                        class="thanks-message anim"
+                        wx:if="{{block.thanks.message}}"
+                        style="transition-delay: 100ms;"
+                      >{{block.thanks.message}}</text>
+                      <text
+                        class="thanks-signature serif anim"
+                        wx:if="{{block.thanks.signature}}"
+                        style="transition-delay: 140ms;"
+                      >{{block.thanks.signature}}</text>
+                    </block>
+                  </view>
+                </view>
+              </block>
+            </view>
+          </block>
+
+          <view class="flow-footer">
+            <view class="footer-rule"></view>
+            <text class="footer-mark">A DAY TO REMEMBER</text>
+            <text class="footer-date">{{dateText}} · {{timeText}}</text>
+            <button class="share-btn" open-type="share" wx:if="{{!preview}}">分享邀请函</button>
+            <button class="share-btn" bindtap="onBackToEditor" wx:else>返回编辑</button>
+          </view>
+        </view>
+      </scroll-view>
+
+      <rsvp-sheet
+        visible="{{rsvpVisible}}"
+        invitation-id="{{invitationId}}"
+        config="{{config.rsvp}}"
+        privacy="{{config.privacy}}"
+        existing="{{myRsvp}}"
+        preview="{{preview}}"
+        deadline-passed="{{deadlinePassed}}"
+        bind:close="closeRsvp"
+        bind:submitted="onRsvpSubmitted"
+      />
+    </view>
+  </block>
+</view>

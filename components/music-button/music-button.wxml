@@ -1,0 +1,13 @@
+<view
+  class="music-button {{playing ? 'is-playing' : 'is-paused'}}"
+  style="top: {{top}}px;"
+  bindtap="onToggle"
+  aria-role="button"
+  aria-label="{{playing ? '暂停背景音乐' : '播放背景音乐'}}"
+>
+  <view class="music-disc">
+    <view class="disc-hole"></view>
+    <text class="disc-note">♪</text>
+  </view>
+  <text class="music-state">{{playing ? '音乐' : '静音'}}</text>
+</view>

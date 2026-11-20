@@ -1,0 +1,13 @@
+{
+  "desc": "邀请函页面不进入微信搜索，避免未公开内容被索引",
+  "rules": [
+    {
+      "action": "disallow",
+      "page": "pages/invite/index"
+    },
+    {
+      "action": "allow",
+      "page": "*"
+    }
+  ]
+}

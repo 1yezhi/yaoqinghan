@@ -1,0 +1,24 @@
+<view class="countdown" wx:if="{{ready}}">
+  <block wx:if="{{!ended}}">
+    <view class="countdown-item">
+      <text class="countdown-num">{{days}}</text>
+      <text class="countdown-label">天</text>
+    </view>
+    <view class="countdown-sep">:</view>
+    <view class="countdown-item">
+      <text class="countdown-num">{{hours}}</text>
+      <text class="countdown-label">时</text>
+    </view>
+    <view class="countdown-sep">:</view>
+    <view class="countdown-item">
+      <text class="countdown-num">{{minutes}}</text>
+      <text class="countdown-label">分</text>
+    </view>
+    <view class="countdown-sep">:</view>
+    <view class="countdown-item">
+      <text class="countdown-num">{{seconds}}</text>
+      <text class="countdown-label">秒</text>
+    </view>
+  </block>
+  <text class="countdown-ended" wx:else>{{endedText}}</text>
+</view>

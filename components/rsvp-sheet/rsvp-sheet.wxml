@@ -1,0 +1,167 @@
+<view wx:if="{{visible}}" class="rsvp-overlay">
+  <view class="rsvp-mask" catchtouchmove="noop" bindtap="onMaskTap"></view>
+  <view class="rsvp-panel" catchtap="noop">
+    <view class="sheet-handle"></view>
+
+    <view wx:if="{{deadlinePassed}}" class="sheet-deadline">
+      <text class="rsvp-kicker">RSVP CLOSED</text>
+      <text class="sheet-title serif">回执已截止</text>
+      <text class="rsvp-desc">回执截止时间为 {{deadlineText}}。如需调整，请直接联系发起人。</text>
+      <view wx:if="{{submitted}}" class="deadline-summary">
+        <text>{{submitted.name}}</text>
+        <text>{{attendanceText}}</text>
+      </view>
+      <button class="rsvp-primary" bindtap="close">知道了</button>
+    </view>
+
+    <view wx:elif="{{success}}" class="rsvp-success">
+      <view class="success-mark">✓</view>
+      <text class="rsvp-kicker">RSVP RECEIVED</text>
+      <text class="sheet-title serif">回执已提交</text>
+      <text class="rsvp-desc">发起人已收到您的回复，感谢您的用心。</text>
+      <view class="success-card">
+        <view class="success-row">
+          <text class="success-label">姓名</text>
+          <text class="success-value">{{submitted.name}}</text>
+        </view>
+        <view class="success-row">
+          <text class="success-label">出席</text>
+          <text class="success-value">{{attendanceText}}</text>
+        </view>
+        <view class="success-row" wx:if="{{submitted.dietary}}">
+          <text class="success-label">饮食</text>
+          <text class="success-value">{{submitted.dietary}}</text>
+        </view>
+      </view>
+      <view class="success-actions">
+        <button class="rsvp-ghost" wx:if="{{!preview && config.allowEdit}}" bindtap="editAgain">修改回执</button>
+        <button class="rsvp-primary" bindtap="close">关闭</button>
+      </view>
+    </view>
+
+    <block wx:else>
+      <view class="sheet-head">
+        <view>
+          <text class="rsvp-kicker">RSVP</text>
+          <text class="sheet-title serif">能否赴约</text>
+        </view>
+        <view class="sheet-close" bindtap="close">×</view>
+      </view>
+
+      <scroll-view class="sheet-body" scroll-y>
+        <view class="preview-banner" wx:if="{{preview}}">预览模式：不会写入回执</view>
+        <view class="existing-banner" wx:if="{{submitted}}">已提交过，可修改后再次提交</view>
+        <view class="deadline-banner" wx:if="{{deadlinePassed}}">回执已于 {{deadlineText}} 截止</view>
+
+        <view class="form-field">
+          <text class="field-label">您的姓名 <text class="required">*</text></text>
+          <input
+            class="field-input {{errors.name ? 'is-error' : ''}}"
+            value="{{form.name}}"
+            data-field="name"
+            bindinput="onInput"
+            placeholder="请填写姓名"
+            maxlength="20"
+            cursor-spacing="24"
+          />
+          <text class="field-error" wx:if="{{errors.name}}">{{errors.name}}</text>
+        </view>
+
+        <view class="form-field">
+          <text class="field-label">手机号 <text class="field-optional" wx:if="{{!requirePhone}}">选填</text></text>
+          <input
+            class="field-input {{errors.phone ? 'is-error' : ''}}"
+            value="{{form.phone}}"
+            data-field="phone"
+            bindinput="onInput"
+            placeholder="{{requirePhone ? '请填写手机号' : '方便发起人联系您（选填）'}}"
+            maxlength="20"
+            cursor-spacing="24"
+          />
+          <text class="field-error" wx:if="{{errors.phone}}">{{errors.phone}}</text>
+        </view>
+
+        <view class="form-field">
+          <text class="field-label">是否出席 <text class="required">*</text></text>
+          <view class="attendance-row">
+            <view
+              class="attendance-option {{form.attendance === 'yes' ? 'is-active' : ''}}"
+              data-value="yes"
+              bindtap="onAttendance"
+            >
+              <text class="attendance-title">出席</text>
+              <text class="attendance-sub">很高兴见到您</text>
+            </view>
+            <view
+              class="attendance-option {{form.attendance === 'no' ? 'is-active' : ''}}"
+              data-value="no"
+              bindtap="onAttendance"
+            >
+              <text class="attendance-title">不出席</text>
+              <text class="attendance-sub">心意已收到</text>
+            </view>
+          </view>
+          <text class="field-error" wx:if="{{errors.attendance}}">{{errors.attendance}}</text>
+        </view>
+
+        <view class="form-field" wx:if="{{form.attendance === 'yes'}}">
+          <text class="field-label">同行人数</text>
+          <view class="stepper">
+            <view class="stepper-btn {{form.partySize == 1 ? 'is-disabled' : ''}}" data-delta="-1" bindtap="changePartySize">−</view>
+            <text class="stepper-value">{{form.partySize}}</text>
+            <view class="stepper-btn {{form.partySize >= maxPartySize ? 'is-disabled' : ''}}" data-delta="1" bindtap="changePartySize">＋</view>
+            <text class="stepper-hint">最多 {{maxPartySize}} 人</text>
+          </view>
+          <text class="field-error" wx:if="{{errors.partySize}}">{{errors.partySize}}</text>
+        </view>
+
+        <view class="form-field">
+          <text class="field-label">饮食禁忌 <text class="field-optional">选填</text></text>
+          <input
+            class="field-input"
+            value="{{form.dietary}}"
+            data-field="dietary"
+            bindinput="onInput"
+            placeholder="素食、过敏、儿童椅等"
+            maxlength="200"
+            cursor-spacing="24"
+          />
+        </view>
+
+        <view class="form-field">
+          <text class="field-label">给发起人的留言 <text class="field-optional">选填</text></text>
+          <textarea
+            class="field-textarea"
+            value="{{form.message}}"
+            data-field="message"
+            bindinput="onInput"
+            placeholder="写一句想说的话"
+            maxlength="200"
+            auto-height
+            cursor-spacing="24"
+          />
+          <text class="field-count">{{form.message.length}} / 200</text>
+        </view>
+
+        <view class="consent-row" bindtap="toggleConsent">
+          <view class="checkbox {{form.consent ? 'is-checked' : ''}}">✓</view>
+          <text class="consent-text">同意将以上信息用于活动回执统计、座位与餐食安排，活动结束后 {{privacy.retentionDays || 90}} 天内删除。</text>
+        </view>
+        <text class="field-error" wx:if="{{errors.consent}}">{{errors.consent}}</text>
+        <text class="privacy-purpose">{{privacy.purpose}}</text>
+        <view class="sheet-spacer"></view>
+      </scroll-view>
+
+      <view class="sheet-footer">
+        <button
+          class="rsvp-primary {{preview || deadlinePassed ? 'is-disabled' : ''}}"
+          bindtap="submit"
+          disabled="{{preview || deadlinePassed || submitting}}"
+          loading="{{submitting}}"
+        >
+          {{submitLabel}}
+        </button>
+      </view>
+    </block>
+  </view>
+</view>

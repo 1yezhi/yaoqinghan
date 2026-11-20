@@ -1,0 +1,12 @@
+{
+  "navigationStyle": "custom",
+  "disableScroll": true,
+  "backgroundColor": "#F6F1E8",
+  "usingComponents": {
+    "envelope-cover": "/components/envelope-cover/envelope-cover",
+    "music-button": "/components/music-button/music-button",
+    "countdown": "/components/countdown/countdown",
+    "rsvp-sheet": "/components/rsvp-sheet/rsvp-sheet",
+    "invite-state": "/components/invite-state/invite-state"
+  }
+}

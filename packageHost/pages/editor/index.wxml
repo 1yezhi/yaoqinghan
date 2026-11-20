@@ -1,0 +1,475 @@
+<view class="page-shell editor-page">
+  <navigation-bar title="编辑邀请函" back="{{true}}" color="#2A2521" background="#F6F1E8"></navigation-bar>
+
+  <view class="step-bar">
+    <view
+      class="step-item"
+      wx:for="{{steps}}"
+      wx:key="key"
+      data-index="{{index}}"
+      bindtap="onStepTap"
+    >
+      <view class="step-dot {{step >= index ? 'is-done' : ''}} {{index === step ? 'is-current' : ''}}">{{index + 1}}</view>
+      <text class="step-label {{index === step ? 'is-current' : ''}}">{{item.label}}</text>
+    </view>
+  </view>
+
+  <scroll-view class="editor-scroll" scroll-y>
+    <view class="editor-body" wx:if="{{form}}">
+      <block wx:if="{{step === 0}}">
+        <view class="form-card">
+          <text class="form-kicker">STEP 01</text>
+          <text class="form-title serif">先写下这场邀请</text>
+          <text class="form-sub">带 * 为必填。标题、发起人会出现在首屏和分享卡片上。</text>
+
+          <view class="field">
+            <view class="field-label-row">
+              <text class="field-label">邀请函标题<text class="required">*</text></text>
+              <text class="field-count">{{form.title.length}}/{{limits.title}}</text>
+            </view>
+            <input
+              class="field-input {{errors.title ? 'is-error' : ''}}"
+              value="{{form.title}}"
+              data-field="title"
+              bindinput="onInput"
+              placeholder="例如：诚挚邀请"
+              maxlength="{{limits.title}}"
+              cursor-spacing="20"
+            />
+            <text class="field-error" wx:if="{{errors.title}}">{{errors.title}}</text>
+          </view>
+
+          <view class="field">
+            <text class="field-label">活动类型</text>
+            <picker mode="selector" range="{{eventTypeLabels}}" value="{{eventTypeIndex}}" bindchange="onEventTypeChange">
+              <view class="picker-value">{{eventTypeLabel}}</view>
+            </picker>
+          </view>
+
+          <view class="field-row">
+            <view class="field half">
+              <text class="field-label">发起人 A<text class="required">*</text></text>
+              <input
+                class="field-input {{errors.hostA ? 'is-error' : ''}}"
+                value="{{form.hostA}}"
+                data-field="hostA"
+                bindinput="onInput"
+                placeholder="姓名"
+                maxlength="{{limits.hostA}}"
+              />
+              <text class="field-error" wx:if="{{errors.hostA}}">{{errors.hostA}}</text>
+            </view>
+            <view class="field half">
+              <text class="field-label">发起人 B <text class="optional">选填</text></text>
+              <input
+                class="field-input {{errors.hostB ? 'is-error' : ''}}"
+                value="{{form.hostB}}"
+                data-field="hostB"
+                bindinput="onInput"
+                placeholder="姓名"
+                maxlength="{{limits.hostB}}"
+              />
+              <text class="field-error" wx:if="{{errors.hostB}}">{{errors.hostB}}</text>
+            </view>
+          </view>
+
+          <view class="field">
+            <text class="field-label">封面图 <text class="optional">选填，建议 3:4</text></text>
+            <view class="cover-picker" bindtap="onChooseCover">
+              <image wx:if="{{form.cover}}" class="cover-image" src="{{form.cover}}" mode="aspectFill" />
+              <view wx:else class="image-placeholder">
+                <text class="placeholder-plus">＋</text>
+                <text class="placeholder-text">选择封面</text>
+              </view>
+              <view wx:if="{{form.cover}}" class="image-replace">更换</view>
+            </view>
+            <text class="field-hint">不选封面时，首屏会使用主题渐变背景。</text>
+          </view>
+
+          <view class="field">
+            <view class="field-label-row">
+              <text class="field-label">首屏副标题 <text class="optional">选填</text></text>
+              <text class="field-count">{{form.subtitle.length}}/{{limits.subtitle}}</text>
+            </view>
+            <input
+              class="field-input {{errors.subtitle ? 'is-error' : ''}}"
+              value="{{form.subtitle}}"
+              data-field="subtitle"
+              bindinput="onInput"
+              placeholder="一句想对宾客说的话"
+              maxlength="{{limits.subtitle}}"
+            />
+            <text class="field-error" wx:if="{{errors.subtitle}}">{{errors.subtitle}}</text>
+            <text class="field-hint">留空时首屏会自动收紧留白，不会留下空行。</text>
+          </view>
+        </view>
+      </block>
+
+      <block wx:elif="{{step === 1}}">
+        <view class="form-card">
+          <text class="form-kicker">STEP 02</text>
+          <text class="form-title serif">时间与地点</text>
+          <text class="form-sub">时间按北京时间保存；地点有坐标时，宾客可以一键打开微信地图。</text>
+
+          <view class="field-row">
+            <view class="field half">
+              <text class="field-label">日期<text class="required">*</text></text>
+              <picker mode="date" value="{{form.date}}" start="2000-01-01" end="2100-12-31" bindchange="onDateChange">
+                <view class="picker-value {{errors.date ? 'is-error' : ''}}">{{form.date}}</view>
+              </picker>
+              <text class="field-error" wx:if="{{errors.date}}">{{errors.date}}</text>
+            </view>
+            <view class="field half">
+              <text class="field-label">时间<text class="required">*</text></text>
+              <picker mode="time" value="{{form.time}}" bindchange="onTimeChange">
+                <view class="picker-value {{errors.time ? 'is-error' : ''}}">{{form.time}}</view>
+              </picker>
+              <text class="field-error" wx:if="{{errors.time}}">{{errors.time}}</text>
+            </view>
+          </view>
+
+          <view class="field">
+            <view class="field-label-row">
+              <text class="field-label">城市 <text class="optional">选填</text></text>
+              <text class="field-count">{{form.city.length}}/{{limits.city}}</text>
+            </view>
+            <input
+              class="field-input {{errors.city ? 'is-error' : ''}}"
+              value="{{form.city}}"
+              data-field="city"
+              bindinput="onInput"
+              placeholder="例如：上海"
+              maxlength="{{limits.city}}"
+            />
+            <text class="field-error" wx:if="{{errors.city}}">{{errors.city}}</text>
+          </view>
+
+          <view class="field">
+            <view class="field-label-row">
+              <text class="field-label">场地名称<text class="required">*</text></text>
+              <text class="field-count">{{form.venueName.length}}/{{limits.venueName}}</text>
+            </view>
+            <input
+              class="field-input {{errors.venueName ? 'is-error' : ''}}"
+              value="{{form.venueName}}"
+              data-field="venueName"
+              bindinput="onInput"
+              placeholder="例如：示例宴会厅"
+              maxlength="{{limits.venueName}}"
+            />
+            <text class="field-error" wx:if="{{errors.venueName}}">{{errors.venueName}}</text>
+          </view>
+
+          <view class="field">
+            <view class="field-label-row">
+              <text class="field-label">详细地址<text class="required">*</text></text>
+              <text class="field-count">{{form.venueAddress.length}}/{{limits.venueAddress}}</text>
+            </view>
+            <textarea
+              class="field-textarea {{errors.venueAddress ? 'is-error' : ''}}"
+              value="{{form.venueAddress}}"
+              data-field="venueAddress"
+              bindinput="onInput"
+              placeholder="街道、门牌号、楼层"
+              maxlength="{{limits.venueAddress}}"
+              auto-height
+            />
+            <text class="field-error" wx:if="{{errors.venueAddress}}">{{errors.venueAddress}}</text>
+          </view>
+
+          <view class="field-row">
+            <view class="field half">
+              <text class="field-label">纬度 <text class="optional">可选</text></text>
+              <input
+                class="field-input {{errors.lat ? 'is-error' : ''}}"
+                type="digit"
+                value="{{form.lat}}"
+                data-field="lat"
+                bindinput="onInput"
+                placeholder="31.2304"
+              />
+            </view>
+            <view class="field half">
+              <text class="field-label">经度 <text class="optional">可选</text></text>
+              <input
+                class="field-input {{errors.lng ? 'is-error' : ''}}"
+                type="digit"
+                value="{{form.lng}}"
+                data-field="lng"
+                bindinput="onInput"
+                placeholder="121.4737"
+              />
+            </view>
+          </view>
+          <text class="field-error" wx:if="{{errors.lat}}">{{errors.lat}}</text>
+          <text class="field-hint">经纬度需同时填写，或在都留空；没有坐标时地点会显示为地址卡和复制按钮。</text>
+        </view>
+      </block>
+
+      <block wx:elif="{{step === 2}}">
+        <view class="form-card">
+          <text class="form-kicker">STEP 03</text>
+          <text class="form-title serif">内容与照片</text>
+          <text class="form-sub">正文按空行分段；短内容会自动并排版式，留空的章节不会出现在邀请函里。</text>
+
+          <view class="field">
+            <view class="field-label-row">
+              <text class="field-label">邀请正文标题 <text class="optional">选填</text></text>
+              <text class="field-count">{{form.letterTitle.length}}/{{limits.letterTitle}}</text>
+            </view>
+            <input
+              class="field-input {{errors.letterTitle ? 'is-error' : ''}}"
+              value="{{form.letterTitle}}"
+              data-field="letterTitle"
+              bindinput="onInput"
+              placeholder="写给您的一封信"
+              maxlength="{{limits.letterTitle}}"
+            />
+            <text class="field-error" wx:if="{{errors.letterTitle}}">{{errors.letterTitle}}</text>
+          </view>
+
+          <view class="field">
+            <view class="field-label-row">
+              <text class="field-label">邀请正文<text class="required">*</text></text>
+              <text class="field-count">{{form.letterText.length}}/{{limits.letterText}}</text>
+            </view>
+            <textarea
+              class="field-textarea {{errors.letterText ? 'is-error' : ''}}"
+              value="{{form.letterText}}"
+              data-field="letterText"
+              bindinput="onInput"
+              placeholder="写下想对宾客说的话，换行会分成段落"
+              maxlength="{{limits.letterText}}"
+              auto-height
+            />
+            <text class="field-error" wx:if="{{errors.letterText}}">{{errors.letterText}}</text>
+            <text class="field-hint">超过约 240 字会自动折叠为“阅读全文”，保持页面紧凑；空行会自动合并。</text>
+          </view>
+
+          <view class="field">
+            <view class="field-label-row">
+              <text class="field-label">故事标题 <text class="optional">选填</text></text>
+              <text class="field-count">{{form.storyTitle.length}}/{{limits.storyTitle}}</text>
+            </view>
+            <input
+              class="field-input {{errors.storyTitle ? 'is-error' : ''}}"
+              value="{{form.storyTitle}}"
+              data-field="storyTitle"
+              bindinput="onInput"
+              placeholder="我们的故事"
+              maxlength="{{limits.storyTitle}}"
+            />
+            <text class="field-error" wx:if="{{errors.storyTitle}}">{{errors.storyTitle}}</text>
+          </view>
+
+          <view class="field">
+            <view class="field-label-row">
+              <text class="field-label">故事内容 <text class="optional">选填</text></text>
+              <text class="field-count">{{form.storyText.length}}/{{limits.storyText}}</text>
+            </view>
+            <textarea
+              class="field-textarea {{errors.storyText ? 'is-error' : ''}}"
+              value="{{form.storyText}}"
+              data-field="storyText"
+              bindinput="onInput"
+              placeholder="两段就够，留一点呼吸感"
+              maxlength="{{limits.storyText}}"
+              auto-height
+            />
+            <text class="field-error" wx:if="{{errors.storyText}}">{{errors.storyText}}</text>
+            <text class="field-hint">留空则不展示故事章节；正文较短时会与邀请正文合并为一张卡片。</text>
+          </view>
+
+          <view class="field">
+            <text class="field-label">相册 <text class="optional">选填，最多 6 张</text></text>
+            <view class="gallery-editor">
+              <view class="gallery-thumb" wx:for="{{form.gallery}}" wx:key="url">
+                <image class="thumb-image" src="{{item.thumb || item.url}}" mode="aspectFill" />
+                <view class="thumb-remove" data-index="{{index}}" catchtap="onRemoveGallery">×</view>
+              </view>
+              <view class="gallery-add" wx:if="{{form.gallery.length != 6}}" bindtap="onChooseGallery">
+                <text class="placeholder-plus">＋</text>
+                <text class="placeholder-text">添加</text>
+              </view>
+            </view>
+            <text class="field-hint">1 张显示整幅，2–3 张显示网格，4 张以上横向滑动；留空则不展示相册。</text>
+          </view>
+
+          <view class="field">
+            <view class="field-head">
+              <text class="field-label">当天流程 <text class="optional">选填，最多 8 项</text></text>
+              <text class="text-btn" bindtap="onAddSchedule">＋ 添加一项</text>
+            </view>
+            <view class="schedule-row" wx:for="{{form.schedule}}" wx:key="index">
+              <input
+                class="schedule-time"
+                value="{{item.time}}"
+                data-index="{{index}}"
+                data-field="time"
+                bindinput="onScheduleInput"
+                bindblur="onScheduleTimeBlur"
+                placeholder="12:00"
+                maxlength="{{limits.scheduleTime}}"
+              />
+              <input
+                class="schedule-title"
+                value="{{item.title}}"
+                data-index="{{index}}"
+                data-field="title"
+                bindinput="onScheduleInput"
+                placeholder="仪式 / 午宴"
+                maxlength="{{limits.scheduleTitle}}"
+              />
+              <view class="schedule-remove" data-index="{{index}}" bindtap="onRemoveSchedule">×</view>
+            </view>
+            <text class="field-error" wx:if="{{errors.schedule}}">{{errors.schedule}}</text>
+            <text class="field-hint" wx:if="{{!form.schedule.length}}">还没有流程，可以添加签到、仪式、午宴等节点；留空则不展示。</text>
+            <text class="field-hint" wx:else>时间使用 24 小时制，如 18:30；全部没有备注时会自动收紧行距。</text>
+          </view>
+        </view>
+      </block>
+
+      <block wx:elif="{{step === 3}}">
+        <view class="form-card">
+          <text class="form-kicker">STEP 04</text>
+          <text class="form-title serif">主题与音乐</text>
+          <text class="form-sub">首版提供三套主题；音乐在用户点击“轻触开启”后才会播放。</text>
+
+          <view class="theme-list">
+            <view
+              class="theme-card {{form.themeId === item.id ? 'is-active' : ''}}"
+              wx:for="{{themes}}"
+              wx:key="id"
+              data-id="{{item.id}}"
+              bindtap="onThemeSelect"
+            >
+              <view class="theme-swatch" style="background: {{item.color}};"></view>
+              <view class="theme-copy">
+                <text class="theme-name">{{item.label}}</text>
+                <text class="theme-desc">{{item.desc}}</text>
+              </view>
+              <text class="theme-check" wx:if="{{form.themeId === item.id}}">✓</text>
+            </view>
+          </view>
+
+          <view class="field">
+            <text class="field-label">背景音乐地址</text>
+            <input
+              class="field-input {{errors.musicSrc ? 'is-error' : ''}}"
+              value="{{form.musicSrc}}"
+              data-field="musicSrc"
+              bindinput="onInput"
+              placeholder="本地 /assets/audio/bgm.mp3 或 HTTPS 音频"
+              maxlength="{{limits.musicSrc}}"
+            />
+            <text class="field-error" wx:if="{{errors.musicSrc}}">{{errors.musicSrc}}</text>
+            <text class="field-hint">第一版内置一段 24 秒示例音乐；正式使用请替换为已授权音乐，并在发布前确认版权。</text>
+          </view>
+
+          <view class="field">
+            <text class="field-label">音量 {{form.musicVolume}}%</text>
+            <slider value="{{form.musicVolume}}" min="0" max="100" activeColor="#A9784B" backgroundColor="#E5D8C6" block-size="20" bindchange="onVolumeChange" />
+          </view>
+
+          <view class="field">
+            <text class="field-label">动效</text>
+            <view class="segment">
+              <view class="segment-item {{form.motion === 'full' ? 'is-active' : ''}}" data-value="full" bindtap="onMotionSelect">完整动效</view>
+              <view class="segment-item {{form.motion === 'reduced' ? 'is-active' : ''}}" data-value="reduced" bindtap="onMotionSelect">减少动效</view>
+            </view>
+            <text class="field-hint">减少动效会关闭渐显位移和循环动效，适合低端机或偏好静态阅读的宾客。</text>
+          </view>
+        </view>
+      </block>
+
+      <block wx:elif="{{step === 4}}">
+        <view class="form-card">
+          <text class="form-kicker">STEP 05</text>
+          <text class="form-title serif">回执与发布</text>
+          <text class="form-sub">回执默认收集姓名、出席状态、人数、饮食禁忌和留言；手机号可选。</text>
+
+          <view class="switch-row">
+            <view>
+              <text class="field-label">开启回执</text>
+              <text class="switch-desc">关闭后受邀端不显示回执入口</text>
+            </view>
+            <switch checked="{{form.rsvpEnabled}}" color="#A9784B" bindchange="onRsvpToggle" />
+          </view>
+
+          <block wx:if="{{form.rsvpEnabled}}">
+            <view class="field">
+              <text class="field-label">回执截止日期<text class="required">*</text></text>
+              <picker mode="date" value="{{form.rsvpDeadline}}" start="2000-01-01" end="2100-12-31" bindchange="onDeadlineChange">
+                <view class="picker-value {{errors.rsvpDeadline ? 'is-error' : ''}}">{{form.rsvpDeadline || '请选择'}}</view>
+              </picker>
+              <text class="field-error" wx:if="{{errors.rsvpDeadline}}">{{errors.rsvpDeadline}}</text>
+              <text class="field-hint">截止日期不能晚于活动日期。</text>
+            </view>
+
+            <view class="switch-row">
+              <view>
+                <text class="field-label">手机号必填</text>
+                <text class="switch-desc">选填时宾客可以只留姓名</text>
+              </view>
+              <switch checked="{{form.requirePhone}}" color="#A9784B" bindchange="onRequirePhoneToggle" />
+            </view>
+
+            <view class="field">
+              <text class="field-label">最多同行人数</text>
+              <view class="stepper-row">
+                <view class="stepper-btn" data-delta="-1" bindtap="changePartySize">−</view>
+                <text class="stepper-value">{{form.maxPartySize}}</text>
+                <view class="stepper-btn" data-delta="1" bindtap="changePartySize">＋</view>
+                <text class="stepper-hint">含本人，最多 6 人</text>
+              </view>
+              <text class="field-error" wx:if="{{errors.maxPartySize}}">{{errors.maxPartySize}}</text>
+            </view>
+
+            <view class="field">
+              <view class="field-label-row">
+                <text class="field-label">信息使用说明<text class="required">*</text></text>
+                <text class="field-count">{{form.privacyPurpose.length}}/{{limits.privacyPurpose}}</text>
+              </view>
+              <textarea
+                class="field-textarea {{errors.privacyPurpose ? 'is-error' : ''}}"
+                value="{{form.privacyPurpose}}"
+                data-field="privacyPurpose"
+                bindinput="onInput"
+                placeholder="说明收集信息用于什么"
+                maxlength="{{limits.privacyPurpose}}"
+                auto-height
+              />
+              <text class="field-error" wx:if="{{errors.privacyPurpose}}">{{errors.privacyPurpose}}</text>
+            </view>
+          </block>
+
+          <view class="checklist">
+            <text class="checklist-title">发布检查</text>
+            <view class="check-row {{item.ok ? 'is-ok' : ''}}" wx:for="{{checklist}}" wx:key="key">
+              <text class="check-icon">{{item.ok ? '✓' : '·'}}</text>
+              <text class="check-label">{{item.label}}</text>
+              <text class="check-action" wx:if="{{!item.ok}}" data-step="{{item.step}}" bindtap="onJumpStep">去完善</text>
+            </view>
+          </view>
+
+          <view class="publish-note">
+            <text>发布后，分享卡片会带上这份邀请函的标题与封面。当前版本数据保存在本机，跨设备分享需要接入云开发。</text>
+          </view>
+        </view>
+      </block>
+    </view>
+    <view class="editor-bottom-space"></view>
+  </scroll-view>
+
+  <view class="editor-footer">
+    <view class="footer-secondary">
+      <button class="footer-btn ghost" bindtap="onSave">保存草稿</button>
+      <button class="footer-btn ghost" bindtap="onPreview">预览</button>
+    </view>
+    <view class="footer-primary">
+      <button class="footer-btn light" wx:if="{{step > 0}}" bindtap="onPrev">上一步</button>
+      <button class="footer-btn primary" wx:if="{{step != steps.length - 1}}" bindtap="onNext">下一步</button>
+      <button class="footer-btn primary" wx:else bindtap="onPublish">发布邀请函</button>
+    </view>
+  </view>
+</view>

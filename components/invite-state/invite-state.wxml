@@ -1,0 +1,11 @@
+<view class="state-wrap theme-{{theme}}">
+  <view class="state-mark">
+    <view class="mark-line"></view>
+    <text class="mark-symbol">✦</text>
+    <view class="mark-line"></view>
+  </view>
+  <text class="state-eyebrow">{{eyebrow}}</text>
+  <text class="state-title serif">{{title}}</text>
+  <text class="state-desc" wx:if="{{description}}">{{description}}</text>
+  <button class="state-btn" wx:if="{{showAction}}" bindtap="onAction">{{actionText}}</button>
+</view>

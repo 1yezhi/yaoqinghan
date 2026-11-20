@@ -1,0 +1,61 @@
+<view class="page-shell home-page">
+  <navigation-bar title="邀请函" back="{{false}}" color="#2A2521" background="#F6F1E8"></navigation-bar>
+
+  <scroll-view class="page-scroll home-scroll" scroll-y>
+    <view class="home-hero">
+      <text class="home-kicker">INVITATION STUDIO</text>
+      <view class="home-title serif">
+        <text class="home-title-line">把重要的一天，</text>
+        <text class="home-title-line">做成一份可以打开的邀请。</text>
+      </view>
+      <text class="home-sub">填写信息、放入照片与音乐，生成一份可以分享的邀请函。</text>
+      <view class="home-actions">
+        <button class="primary-btn create-btn" bindtap="onCreate">新建邀请函</button>
+        <button class="ghost-btn demo-btn" bindtap="onOpenDemo">打开示例</button>
+      </view>
+    </view>
+
+    <view class="section-head-row">
+      <text class="list-title serif">我的邀请函</text>
+      <text class="list-count">{{invitations.length}} 份</text>
+    </view>
+
+    <view class="invite-list" wx:if="{{invitations.length}}">
+      <view class="invite-card" wx:for="{{invitations}}" wx:key="id">
+        <view class="card-cover" bindtap="onPreview" data-id="{{item.id}}">
+          <image wx:if="{{item.cover}}" class="card-cover-img" src="{{item.cover}}" mode="aspectFill" />
+          <view wx:else class="card-cover-fallback"></view>
+          <text class="card-status {{item.status}}">{{item.statusText}}</text>
+        </view>
+        <view class="card-body">
+          <text class="card-title serif">{{item.title}}</text>
+          <text class="card-meta">{{item.dateText}} · {{item.venueName || '地点待定'}}</text>
+          <view class="card-stats">
+            <text class="stat">{{item.rsvpCount}} 条回执</text>
+            <text class="stat-dot">·</text>
+            <text class="stat">{{item.guestCount}} 人出席</text>
+          </view>
+          <view class="card-actions">
+            <button class="card-btn primary" bindtap="onEdit" data-id="{{item.id}}">编辑</button>
+            <button class="card-btn" bindtap="onPreview" data-id="{{item.id}}">预览</button>
+            <button
+              class="card-btn"
+              open-type="share"
+              data-id="{{item.id}}"
+              wx:if="{{item.status === 'published'}}"
+            >分享</button>
+            <button class="card-btn" bindtap="onResponses" data-id="{{item.id}}">回执</button>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view wx:else class="empty-state">还没有邀请函，点击上方“新建邀请函”开始。</view>
+
+    <view class="home-note">
+      <text class="note-title">第一版说明</text>
+      <text class="note-text">当前数据保存在本机，用于跑通创建、预览与回执流程。接入云开发后，分享链接和回执可以跨设备汇总。</text>
+    </view>
+    <view class="safe-bottom"></view>
+  </scroll-view>
+</view>
