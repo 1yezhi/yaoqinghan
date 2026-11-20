@@ -32,7 +32,6 @@
       theme="{{themeId}}"
       motion="{{config.theme.motion}}"
       bind:open="onOpen"
-      bind:envelopeerror="onEnvelopeError"
     />
 
     <view

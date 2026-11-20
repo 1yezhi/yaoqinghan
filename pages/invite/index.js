@@ -376,10 +376,6 @@ Page({
     this.openTimer = setTimeout(() => this.finishOpening(), reduced ? 420 : 1500)
   },
 
-  onEnvelopeError() {
-    this.finishOpening()
-  },
-
   finishOpening() {
     this.clearTimers()
     if (this.data.opened) return

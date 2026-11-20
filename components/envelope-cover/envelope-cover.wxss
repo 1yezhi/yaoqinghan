@@ -122,7 +122,180 @@
 
 /* 动态姓名/日期画在独立透明画布上，避免被原生 canvas 盖住 */
 .text-canvas {
+  z-index: 3;
+}
+
+/* ---------- 静态分层兜底 ---------- */
+/* 坐标按 Lottie 的 750×1000 舞台换算成百分比，保证两套渲染位置一致 */
+.envelope-fallback {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
   z-index: 2;
+  pointer-events: none;
+}
+
+.envelope-fallback image {
+  position: absolute;
+  display: block;
+}
+
+.fb-shadow {
+  left: 10%;
+  top: 86%;
+  width: 80%;
+  height: 10%;
+  z-index: 1;
+}
+
+.fb-flap-back {
+  left: 7.333%;
+  top: 13.533%;
+  width: 85.333%;
+  height: 38.467%;
+  z-index: 2;
+  opacity: 0;
+  transform: scaleY(0.01);
+  transform-origin: center bottom;
+}
+
+.fb-letter {
+  left: 24.16%;
+  top: 34.635%;
+  width: 51.68%;
+  height: 41.63%;
+  z-index: 3;
+  transform: translateY(34.5%) scale(0.843);
+  transform-origin: center center;
+}
+
+.fb-body {
+  left: 7.333%;
+  top: 51.983%;
+  width: 85.333%;
+  height: 37.333%;
+  z-index: 4;
+}
+
+.fb-pocket {
+  left: 7.333%;
+  top: 51.983%;
+  width: 85.333%;
+  height: 37.333%;
+  z-index: 5;
+}
+
+.fb-flap {
+  left: 7.333%;
+  top: 52%;
+  width: 85.333%;
+  height: 29.267%;
+  z-index: 6;
+  transform-origin: center top;
+}
+
+.fb-sticker {
+  left: 42.39%;
+  top: 74.38%;
+  width: 15.21%;
+  height: 11.24%;
+  z-index: 7;
+  transform: scale(0.887);
+  transform-origin: center center;
+}
+
+/* ---------- 兜底开启动画，节奏与 Lottie 时间线对齐 ---------- */
+.is-opening .fb-sticker {
+  animation: fb-sticker-out 0.34s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.is-opening .fb-flap {
+  animation: fb-flap-fold 0.42s cubic-bezier(0.4, 0, 0.2, 1) 0.1s forwards;
+}
+
+.is-opening .fb-flap-back {
+  animation: fb-flap-rise 0.36s cubic-bezier(0.4, 0, 0.2, 1) 0.27s forwards;
+}
+
+.is-opening .fb-letter {
+  animation: fb-letter-out 0.53s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
+}
+
+.is-opening {
+  animation: fb-fade-out 0.42s ease 1.06s forwards;
+}
+
+.is-static .fb-sticker,
+.is-static .fb-flap,
+.is-static .fb-flap-back,
+.is-static .fb-letter,
+.is-static {
+  animation: none;
+}
+
+@keyframes fb-sticker-out {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  45% {
+    transform: scale(1.16) rotate(6deg);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.16) rotate(6deg);
+    opacity: 0;
+  }
+}
+
+@keyframes fb-flap-fold {
+  0% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(0.01);
+    opacity: 0;
+  }
+}
+
+@keyframes fb-flap-rise {
+  0% {
+    transform: scaleY(0.01);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(0.76);
+    opacity: 1;
+  }
+}
+
+@keyframes fb-letter-out {
+  0% {
+    transform: translateY(34.5%) scale(0.843);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fb-fade-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-1.5%);
+  }
 }
 
 .open-hint {

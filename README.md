@@ -76,7 +76,9 @@ code/
 `components/envelope-cover` 已从 CSS 图形改为 Lottie + Canvas：
 
 - `assets/envelope/envelope.json` 是 750×1000、60fps、66 帧的 Lottie 合成；`body / pocket / flap-front / flap-back / letter / sticker` 六层透明 PNG 独立控制，封口做上下翻折，信纸从口袋后方抽出。
-- 播放器用 `miniprogram_npm/lottie-miniprogram`，通过 `canvas type="2d"` 渲染；图片先用 `wx.getImageInfo` 换成临时路径，避免本地包路径在 Canvas 中加载失败。
+- 播放器用 `miniprogram_npm/lottie-miniprogram`，通过 `canvas type="2d"` 渲染。
+- 图层图片走 `components/envelope-cover/envelope-assets.js`：先按 `/assets/...`、组件相对路径、包根路径依次尝试 `wx.getImageInfo` 换临时路径，仍失败则用 `FileSystemManager.readFile` 读成 base64 data URI。Canvas 的 `createImage` 不能直接读代码包路径，这一步是必须的。
+- 首帧渲染后采样信封中心像素，确认 Lottie 真的画出图像；在此之前由 WXML 静态分层信封（`body / pocket / flap / letter / sticker` 六张 `<image>`）兜底，即使画布不可用也不会白屏，点击后由 CSS 关键帧完成开信动画。
 - 动画约 1.1 秒结束，随后在独立的透明 Canvas 上绘制动态姓名、日期和火漆字，做 380ms 渐显；页面总时长仍为 1.5 秒。
 - 动态文字不烘焙进图片，继续来自 `hosts / dateText / seal`；一套红金美术，三套主题只切换舞台背景。
 - 点击只负责开启，不再提供“跳过”；开场过程中再次点击会被忽略。
@@ -136,6 +138,8 @@ code/
 - 用 mock `wx` 存储跑通了：示例读取 → 新建草稿 → 表单映射 → 保存 → 回执提交/修改 → 发布 → 删除。
 - 用示例、信息很少、长正文、空地点四组数据验证了版式分块、合并、相册模式和空内容隐藏。
 - Lottie JSON 已用 lottie-web 在浏览器中逐帧渲染（0/16/24/32/40/48/56/62 帧），检查了封口翻折、信纸抽出、口袋遮挡和构图；资产尺寸与 JSON 描述一致。
+- 用 mock `wx` 验证了图层加载的三条路径：`getImageInfo` 临时路径、base64 data URI、原始包路径；并用 mock Canvas 跑通了信封组件初始化 → 首帧像素校验 → 点击播放 → 动态文字。
+- 静态兜底信封用同一套百分比坐标渲染并截图比对，闭合状态不露信纸，翻开后信纸从口袋后方抽出。
 - 代码已推送到 `https://github.com/1yezhi/yaoqinghan.git` 的 `main` 分支。
 
 ## 暂未覆盖 / 后续确认

@@ -1,8 +1,11 @@
 const lottie = require('../../miniprogram_npm/lottie-miniprogram/index.js')
 const animationData = require('../../assets/envelope/envelope-data')
+const { resolveEnvelopeAssets } = require('./envelope-assets')
 
 const FINAL_FRAME = 65
 const TEXT_FADE_MS = 380
+const INIT_RETRY = 3
+const READY_TIMEOUT = 1200
 
 function getDpr() {
   try {
@@ -33,6 +36,8 @@ Component({
   },
 
   data: {
+    // Lottie 首帧确认前先显示静态分层信封，避免白屏
+    showFallback: true,
     textStage: false
   },
 
@@ -44,7 +49,7 @@ Component({
 
   lifetimes: {
     ready() {
-      this.initLottie()
+      this.initLottie(0)
     },
     detached() {
       this.destroy()
@@ -52,14 +57,20 @@ Component({
   },
 
   methods: {
-    initLottie() {
+    initLottie(attempt) {
       this.createSelectorQuery()
         .select('#envelope-canvas')
         .fields({ node: true, size: true })
         .exec((res) => {
+          if (this.destroyed) return
           const info = res && res[0]
           if (!info || !info.node || !info.width || !info.height) {
-            this.fail()
+            if (attempt < INIT_RETRY) {
+              setTimeout(() => this.initLottie(attempt + 1), 120)
+            } else {
+              // 画布不可用时保留静态信封，交互仍然可用
+              this.lottieBroken = true
+            }
             return
           }
           try {
@@ -68,85 +79,114 @@ Component({
             canvas.width = Math.round(info.width * dpr)
             canvas.height = Math.round(info.height * dpr)
             const ctx = canvas.getContext('2d')
+            if (!ctx) throw new Error('no 2d context')
+            this.canvas = canvas
+            this.ctx = ctx
+            this.dpr = dpr
             lottie.setup(canvas)
-            this.loadAnimation(ctx)
           } catch (error) {
-            this.fail()
+            this.lottieBroken = true
+            return
           }
+          this.loadAnimation()
         })
     },
 
-    loadAnimation(ctx) {
-      const sources = [
-        { id: 'body', src: '/assets/envelope/body.png' },
-        { id: 'pocket', src: '/assets/envelope/pocket.png' },
-        { id: 'flap-front', src: '/assets/envelope/flap-front.png' },
-        { id: 'flap-back', src: '/assets/envelope/flap-back.png' },
-        { id: 'letter', src: '/assets/envelope/letter.png' },
-        { id: 'sticker', src: '/assets/envelope/sticker.png' },
-        { id: 'shadow', src: '/assets/envelope/shadow.png' }
-      ]
-      Promise.all(
-        sources.map(
-          (item) =>
-            new Promise((resolve) => {
-              if (!wx.getImageInfo) {
-                resolve(item)
-                return
-              }
-              wx.getImageInfo({
-                src: item.src,
-                success: (res) => resolve({ id: item.id, path: res.path || item.src }),
-                fail: () => resolve(item)
-              })
-            })
-        )
-      )
-        .then((items) => {
+    loadAnimation() {
+      resolveEnvelopeAssets()
+        .then((sources) => {
           if (this.destroyed) return
           const data = JSON.parse(JSON.stringify(animationData))
-          const pathMap = {}
-          items.forEach((item) => {
-            if (item.path) pathMap[item.id] = item.path
-          })
           data.assets.forEach((asset) => {
-            if (pathMap[asset.id]) {
-              asset.u = ''
-              asset.p = pathMap[asset.id]
-            }
+            const source = sources[asset.id]
+            if (!source) return
+            asset.e = 1
+            asset.u = ''
+            asset.p = source
           })
           this.ani = lottie.loadAnimation({
             loop: false,
             autoplay: false,
             animationData: data,
             rendererSettings: {
-              context: ctx,
+              context: this.ctx,
               clearCanvas: true
             }
           })
-          this.ani.addEventListener('DOMLoaded', () => {
-            if (this.destroyed) return
-            this.loaded = true
-            this.ani.goToAndStop(0, true)
-            if (this.pendingPlay) this.play()
-          })
+          this.ani.addEventListener('DOMLoaded', () => this.renderFirstFrame())
           this.ani.addEventListener('complete', () => {
             if (!this.destroyed) this.showText()
           })
-          this.ani.addEventListener('error', () => this.fail())
+          // DOMLoaded 在部分基础库上可能早于监听绑定
+          this.readyTimer = setTimeout(() => this.renderFirstFrame(), READY_TIMEOUT)
         })
-        .catch(() => this.fail())
+        .catch(() => {
+          this.lottieBroken = true
+        })
+    },
+
+    renderFirstFrame() {
+      if (this.destroyed || this.firstFrame || !this.ani) return
+      this.firstFrame = true
+      if (this.readyTimer) {
+        clearTimeout(this.readyTimer)
+        this.readyTimer = null
+      }
+      try {
+        this.ani.goToAndStop(0, true)
+      } catch (error) {
+        this.lottieBroken = true
+        return
+      }
+      this.checkPainted()
+    },
+
+    // 采样信封中心像素，确认 Lottie 真的画出了图像而不是空白画布
+    checkPainted() {
+      let painted = false
+      try {
+        const canvas = this.canvas
+        const pixel = this.ctx.getImageData(
+          Math.floor(canvas.width / 2),
+          Math.floor(canvas.height * 0.7065),
+          1,
+          1
+        ).data
+        painted = !!(pixel && pixel[3] > 8)
+      } catch (error) {
+        // 个别基础库不支持 getImageData，按已渲染处理
+        painted = true
+      }
+      if (!painted) {
+        this.lottieBroken = true
+        return
+      }
+      this.lottieReady = true
+      // 用户已经点击时让 CSS 兜底动画继续，避免画面中途切换
+      if (!this.data.opening) {
+        this.setData({ showFallback: false })
+      }
+      if (this.data.opening && this.data.motion === 'reduced') {
+        try {
+          this.ani.goToAndStop(FINAL_FRAME, true)
+        } catch (error) {
+          // ignore
+        }
+        this.showText(true)
+      }
     },
 
     play() {
       if (this.destroyed || this.playing) return
-      if (!this.loaded || !this.ani) {
-        this.pendingPlay = true
-        return
-      }
+      // Lottie 未就绪时由 WXML 静态信层的 CSS 动画接管
+      if (!this.lottieReady || !this.ani) return
       this.playing = true
       if (this.data.motion === 'reduced') {
-        this.ani.goToAndStop(FINAL_FRAME, true)
+        try {
+          this.ani.goToAndStop(FINAL_FRAME, true)
+        } catch (error) {
+          // ignore
+        }
         this.showText(true)
         return
       }
@@ -283,17 +323,15 @@ Component({
       }, 600)
     },
 
-    fail() {
-      if (this.destroyed || this.failed) return
-      this.failed = true
-      this.triggerEvent('envelopeerror')
-    },
-
     destroy() {
       this.destroyed = true
       if (this.textTimer) {
         clearTimeout(this.textTimer)
         this.textTimer = null
+      }
+      if (this.readyTimer) {
+        clearTimeout(this.readyTimer)
+        this.readyTimer = null
       }
       if (this.textCanvas && this.textFrame) {
         try {

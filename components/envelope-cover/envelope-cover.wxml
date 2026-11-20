@@ -23,6 +23,21 @@
       aria-role="button"
       aria-label="轻触开启邀请函"
     ></canvas>
+
+    <!-- 静态分层兜底：Lottie 首帧确认前、或画布/图片不可用时显示 -->
+    <view
+      class="envelope-fallback {{opening ? 'is-opening' : ''}} {{motion === 'reduced' ? 'is-static' : ''}}"
+      wx:if="{{showFallback}}"
+    >
+      <image class="fb-shadow" src="/assets/envelope/shadow.png" mode="scaleToFill" />
+      <image class="fb-letter" src="/assets/envelope/letter.png" mode="scaleToFill" />
+      <image class="fb-body" src="/assets/envelope/body.png" mode="scaleToFill" />
+      <image class="fb-pocket" src="/assets/envelope/pocket.png" mode="scaleToFill" />
+      <image class="fb-flap-back" src="/assets/envelope/flap-back.png" mode="scaleToFill" />
+      <image class="fb-flap" src="/assets/envelope/flap-front.png" mode="scaleToFill" />
+      <image class="fb-sticker" src="/assets/envelope/sticker.png" mode="scaleToFill" />
+    </view>
+
     <canvas
       wx:if="{{textStage}}"
       id="text-canvas"
