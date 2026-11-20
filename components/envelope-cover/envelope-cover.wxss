@@ -100,11 +100,10 @@
 /* Lottie 画布：3:4 竖向舞台，居中偏上 */
 .lottie-wrap {
   position: absolute;
-  left: 50%;
-  top: 46%;
+  left: calc(50% - 21.75vh);
+  top: 17%;
   width: 43.5vh;
   height: 58vh;
-  transform: translate(-50%, -50%);
   z-index: 5;
 }
 

@@ -151,6 +151,15 @@ Component({
         return
       }
       this.ani.play()
+      this.textTimer = setTimeout(() => {
+        if (this.destroyed) return
+        try {
+          this.ani.pause()
+        } catch (error) {
+          // ignore
+        }
+        this.showText()
+      }, 1120)
     },
 
     showText(immediate) {
@@ -282,6 +291,10 @@ Component({
 
     destroy() {
       this.destroyed = true
+      if (this.textTimer) {
+        clearTimeout(this.textTimer)
+        this.textTimer = null
+      }
       if (this.textCanvas && this.textFrame) {
         try {
           this.textCanvas.cancelAnimationFrame(this.textFrame)
