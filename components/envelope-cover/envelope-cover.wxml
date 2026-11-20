@@ -1,5 +1,5 @@
 <view
-  class="envelope-stage theme-{{theme}} {{opening ? 'is-opening' : ''}} {{motion === 'reduced' ? 'motion-reduced' : ''}}"
+  class="envelope-stage theme-{{theme}} {{motion === 'reduced' ? 'motion-reduced' : ''}}"
   bindtap="onTap"
   aria-role="button"
   aria-label="轻触开启邀请函"
@@ -14,25 +14,22 @@
     <view class="stage-rule"></view>
   </view>
 
-  <view class="envelope">
-    <view class="env-shadow"></view>
-    <view class="env-card">
-      <view class="card-border"></view>
-      <text class="card-kicker">INVITATION</text>
-      <text class="card-title serif">{{hosts || title}}</text>
-      <view class="card-line"></view>
-      <text class="card-date">{{dateText}}</text>
-      <text class="card-note">期待与您相见</text>
-    </view>
-    <view class="env-back"></view>
-    <view class="env-front">
-      <view class="front-shade"></view>
-      <view class="front-line"></view>
-    </view>
-    <view class="env-flap"></view>
-    <view class="env-seal">
-      <view class="seal-inner">{{seal}}</view>
-    </view>
+  <view class="lottie-wrap">
+    <canvas
+      id="envelope-canvas"
+      type="2d"
+      class="lottie-canvas"
+      bindtap="onTap"
+      aria-role="button"
+      aria-label="轻触开启邀请函"
+    ></canvas>
+    <canvas
+      wx:if="{{textStage}}"
+      id="text-canvas"
+      type="2d"
+      class="text-canvas"
+      bindtap="onTap"
+    ></canvas>
   </view>
 
   <view class="open-hint" wx:if="{{!opening}}">
@@ -40,5 +37,4 @@
     <text class="hint-main">轻触开启</text>
     <text class="hint-sub">请开启声音，沉浸浏览</text>
   </view>
-  <view class="skip-hint" wx:else>轻触跳过动画</view>
 </view>

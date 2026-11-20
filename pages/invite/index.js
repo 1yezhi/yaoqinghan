@@ -109,6 +109,7 @@ Page({
     this.setMenuButtonTop()
     this.setData({ preview: this.isPreview })
     this.setupAudioInterruption()
+    this.initOpenSound()
     this.loadInvitation()
   },
 
@@ -137,6 +138,14 @@ Page({
         // ignore audio cleanup errors
       }
       this.audio = null
+    }
+    if (this.openAudio) {
+      try {
+        this.openAudio.destroy()
+      } catch (error) {
+        // ignore audio cleanup errors
+      }
+      this.openAudio = null
     }
     if (wx.offAudioInterruptionBegin && this.handleAudioBegin) {
       wx.offAudioInterruptionBegin(this.handleAudioBegin)
@@ -168,6 +177,48 @@ Page({
     }
     if (wx.onAudioInterruptionBegin) wx.onAudioInterruptionBegin(this.handleAudioBegin)
     if (wx.onAudioInterruptionEnd) wx.onAudioInterruptionEnd(this.handleAudioEnd)
+  },
+
+  initOpenSound() {
+    try {
+      this.openAudio = wx.createInnerAudioContext()
+      this.openAudio.src = '/assets/audio/envelope-open.mp3'
+      this.openAudio.volume = 0.8
+      this.openAudio.loop = false
+      this.openAudio.onError(() => {
+        // 音效缺失时不影响动画
+      })
+    } catch (error) {
+      this.openAudio = null
+    }
+  },
+
+  playOpenSound() {
+    if (!this.openAudio) return
+    try {
+      this.openAudio.stop()
+    } catch (error) {
+      // ignore
+    }
+    try {
+      this.openAudio.seek(0)
+    } catch (error) {
+      // ignore
+    }
+    try {
+      this.openAudio.play()
+    } catch (error) {
+      // ignore
+    }
+  },
+
+  vibrateOpen() {
+    if (!wx.vibrateShort) return
+    try {
+      wx.vibrateShort({ type: 'light', fail: () => {} })
+    } catch (error) {
+      // ignore
+    }
   },
 
   loadInvitation() {
@@ -318,12 +369,14 @@ Page({
     if (this.data.opened || this.data.opening) return
     // 必须在用户点击的同一个调用栈里开始播放，避免丢失手势
     this.playMusic()
+    this.playOpenSound()
+    this.vibrateOpen()
     this.setData({ opening: true })
     const reduced = this.data.config && this.data.config.theme && this.data.config.theme.motion === 'reduced'
     this.openTimer = setTimeout(() => this.finishOpening(), reduced ? 420 : 1500)
   },
 
-  onSkip() {
+  onEnvelopeError() {
     this.finishOpening()
   },
 

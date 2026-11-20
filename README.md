@@ -39,7 +39,12 @@ code/
 ├─ app.js / app.json / app.wxss
 ├─ assets/
 │  ├─ audio/bgm.mp3              # 演示背景音乐
+│  ├─ audio/envelope-open.mp3    # 开信音效（占位，可替换）
+│  ├─ envelope/                  # Lottie JSON、分层 PNG、动态文字数据
 │  └─ images/                    # 演示封面、故事图、相册图
+├─ miniprogram_npm/
+│  └─ lottie-miniprogram/        # 内置 Lottie 小程序播放器
+├─ package.json                  # lottie-miniprogram 依赖声明
 ├─ components/
 │  ├─ envelope-cover/            # 信封与开启动画
 │  ├─ music-button/              # 唱片式音乐开关
@@ -68,7 +73,16 @@ code/
 
 ### 信封与入场
 
-`components/envelope-cover` 用 6 层 CSS 图形拼出信封：背板、卡片、前袋、封口、火漆、投影。点击后封口 `rotateX` 翻开、卡片上浮、信封淡出，约 1.5 秒后进入首屏；用户再次点击可以跳过。
+`components/envelope-cover` 已从 CSS 图形改为 Lottie + Canvas：
+
+- `assets/envelope/envelope.json` 是 750×1000、60fps、66 帧的 Lottie 合成；`body / pocket / flap-front / flap-back / letter / sticker` 六层透明 PNG 独立控制，封口做上下翻折，信纸从口袋后方抽出。
+- 播放器用 `miniprogram_npm/lottie-miniprogram`，通过 `canvas type="2d"` 渲染；图片先用 `wx.getImageInfo` 换成临时路径，避免本地包路径在 Canvas 中加载失败。
+- 动画约 1.1 秒结束，随后在独立的透明 Canvas 上绘制动态姓名、日期和火漆字，做 380ms 渐显；页面总时长仍为 1.5 秒。
+- 动态文字不烘焙进图片，继续来自 `hosts / dateText / seal`；一套红金美术，三套主题只切换舞台背景。
+- 点击只负责开启，不再提供“跳过”；开场过程中再次点击会被忽略。
+- 开启时同时播放 `/assets/audio/envelope-open.mp3` 并调用 `wx.vibrateShort`；音效是占位合成音，正式使用请替换为有授权的蜡封/纸张音效。
+
+> 新美术源文件在 `D:\邀请函\美术`，已做透明化、裁切、压缩和分层处理；原图带棋盘格背景和“豆包 AI 生成”水印，未直接打进小程序。
 
 ### 音乐
 
@@ -121,6 +135,8 @@ code/
 - 用示例数据调用编译后的模板生成函数，页面和组件均能正常渲染。
 - 用 mock `wx` 存储跑通了：示例读取 → 新建草稿 → 表单映射 → 保存 → 回执提交/修改 → 发布 → 删除。
 - 用示例、信息很少、长正文、空地点四组数据验证了版式分块、合并、相册模式和空内容隐藏。
+- Lottie JSON 已用 lottie-web 在浏览器中逐帧渲染（0/16/24/32/40/48/56/62 帧），检查了封口翻折、信纸抽出、口袋遮挡和构图；资产尺寸与 JSON 描述一致。
+- 代码已推送到 `https://github.com/1yezhi/yaoqinghan.git` 的 `main` 分支。
 
 ## 暂未覆盖 / 后续确认
 
@@ -130,7 +146,9 @@ code/
 4. **邀请函编辑器的高级能力**：章节排序/显隐、多人协作、模板市场、分享海报、双语、座位/餐食细分还没做。
 5. **隐私与审核**：上线前需要配置微信用户隐私保护指引（相册/相机、回执信息），并确认类目、音乐/图片版权、UGC 策略。
 6. **地图选点**：当前手填经纬度；如要地图选点，建议用 `<map>` 点选 + 服务端地理编码，不依赖 `chooseLocation` 的接口权限。
-7. **真机验证**：本机没有微信开发者工具，音乐本地路径、iOS 静音、地图跳转、相册选择、回执键盘顶起等都需要在真机上再验一遍。
+7. **真机验证**：本机没有微信开发者工具，Lottie Canvas 渲染、本地图片 `createImage` 加载、iOS 静音、音效与 BGM 混音、震动、地图跳转、相册选择、回执键盘顶起等都需要在真机上再验一遍。
+8. **开信音效**：`assets/audio/envelope-open.mp3` 是按蜡封+纸张声合成的占位音，正式使用请替换为有授权的素材。
+9. **Lottie 包体**：`miniprogram_npm/lottie-miniprogram` 约 205KB，信封分层 PNG 约 680KB；当前主包约 1.6MB，仍低于 2MB，但后续加素材需要继续控制体积。
 
 ## 重置演示数据
 

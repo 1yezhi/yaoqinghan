@@ -66,7 +66,7 @@
   right: 0;
   bottom: 0;
   left: 0;
-  opacity: 0.18;
+  opacity: 0.16;
   background-image: radial-gradient(rgba(120, 90, 60, 0.22) 0.5rpx, transparent 0.5rpx);
   background-size: 7rpx 7rpx;
   pointer-events: none;
@@ -74,7 +74,7 @@
 
 .stage-top {
   position: absolute;
-  top: 15%;
+  top: 10%;
   left: 50%;
   display: flex;
   flex-direction: column;
@@ -97,211 +97,39 @@
   background: rgba(169, 120, 75, 0.5);
 }
 
-.envelope {
-  position: relative;
-  width: 620rpx;
-  height: 420rpx;
-  margin-top: 70rpx;
-  perspective: 1400rpx;
-  transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+/* Lottie 画布：3:4 竖向舞台，居中偏上 */
+.lottie-wrap {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 43.5vh;
+  height: 58vh;
+  transform: translate(-50%, -50%);
   z-index: 5;
 }
 
-.is-opening .envelope {
-  transform: translateY(-8rpx);
-}
-
-.env-shadow {
-  position: absolute;
-  left: 50%;
-  bottom: -34rpx;
-  width: 560rpx;
-  height: 64rpx;
-  margin-left: -280rpx;
-  border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgba(72, 48, 28, 0.24) 0%, rgba(72, 48, 28, 0.1) 42%, rgba(72, 48, 28, 0) 72%);
-  transition: opacity 600ms ease;
-}
-
-.is-opening .env-shadow {
-  opacity: 0.4;
-}
-
-.env-back {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  border-radius: 10rpx;
-  background: linear-gradient(165deg, #f4e7d6 0%, #e8d6bd 100%);
-  border: 1rpx solid rgba(169, 120, 75, 0.34);
-  box-shadow: 0 22rpx 50rpx rgba(87, 60, 35, 0.16);
-  z-index: 1;
-}
-
-.env-card {
-  position: absolute;
-  left: 50rpx;
-  top: 120rpx;
-  width: 520rpx;
-  height: 300rpx;
-  padding: 24rpx 28rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4rpx;
-  background: #fffdf8;
-  border: 1rpx solid rgba(169, 120, 75, 0.32);
-  box-shadow: 0 10rpx 28rpx rgba(87, 60, 35, 0.12);
-  transform: translateY(0) scale(0.97);
-  opacity: 0.95;
-  transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1) 280ms, opacity 700ms ease 280ms;
-  z-index: 2;
-}
-
-.is-opening .env-card {
-  transform: translateY(-260rpx) scale(1.03);
-  opacity: 1;
-}
-
-.card-border {
-  position: absolute;
-  top: 12rpx;
-  right: 12rpx;
-  bottom: 12rpx;
-  left: 12rpx;
-  border: 1rpx solid rgba(169, 120, 75, 0.2);
-  pointer-events: none;
-}
-
-.card-kicker {
-  color: #a9784b;
-  font-size: 16rpx;
-  letter-spacing: 0.26em;
-}
-
-.card-title {
-  margin-top: 14rpx;
-  font-size: 40rpx;
-  line-height: 1.3;
-  text-align: center;
-}
-
-.card-line {
-  width: 54rpx;
-  height: 1rpx;
-  margin: 14rpx 0;
-  background: rgba(169, 120, 75, 0.55);
-}
-
-.card-date {
-  color: #6e6257;
-  font-size: 22rpx;
-  letter-spacing: 0.16em;
-}
-
-.card-note {
-  margin-top: 14rpx;
-  color: #a9784b;
-  font-size: 17rpx;
-  letter-spacing: 0.16em;
-}
-
-.env-front {
-  position: absolute;
-  left: 0;
-  top: 158rpx;
-  width: 620rpx;
-  height: 262rpx;
-  overflow: hidden;
-  border-radius: 0 0 10rpx 10rpx;
-  background: linear-gradient(180deg, #ecdbc4 0%, #e3ceb3 100%);
-  border: 1rpx solid rgba(169, 120, 75, 0.28);
-  border-top: none;
-  box-shadow: 0 -2rpx 0 rgba(255, 253, 248, 0.38) inset;
-  z-index: 3;
-}
-
-.front-shade {
+.lottie-canvas,
+.text-canvas {
   position: absolute;
   left: 0;
   top: 0;
   width: 100%;
-  height: 150rpx;
-  background: linear-gradient(180deg, rgba(255, 250, 240, 0.5), rgba(255, 250, 240, 0));
+  height: 100%;
 }
 
-.front-line {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  width: 1rpx;
-  height: 150rpx;
-  background: rgba(169, 120, 75, 0.16);
+.lottie-canvas {
+  z-index: 1;
 }
 
-.env-flap {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 0;
-  height: 0;
-  border-left: 310rpx solid transparent;
-  border-right: 310rpx solid transparent;
-  border-top: 220rpx solid #edddc7;
-  transform-origin: top center;
-  backface-visibility: hidden;
-  transition: transform 700ms cubic-bezier(0.4, 0, 0.2, 1), opacity 400ms ease 450ms;
-  z-index: 4;
-}
-
-.is-opening .env-flap {
-  transform: rotateX(-158deg);
-  opacity: 0;
-}
-
-.env-seal {
-  position: absolute;
-  left: 50%;
-  top: 144rpx;
-  width: 92rpx;
-  height: 92rpx;
-  margin-left: -46rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 28%, #d3ad78, #a9784b 62%, #7f4f25 100%);
-  box-shadow: 0 6rpx 14rpx rgba(87, 60, 35, 0.28);
-  transition: transform 350ms ease, opacity 300ms ease;
-  z-index: 5;
-}
-
-.is-opening .env-seal {
-  transform: scale(1.18) rotate(12deg);
-  opacity: 0;
-}
-
-.seal-inner {
-  width: 66rpx;
-  height: 66rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1rpx solid rgba(255, 247, 231, 0.55);
-  border-radius: 50%;
-  color: #fff8ec;
-  font-family: "Songti SC", "STSong", serif;
-  font-size: 26rpx;
-  letter-spacing: 0.02em;
+/* 动态姓名/日期画在独立透明画布上，避免被原生 canvas 盖住 */
+.text-canvas {
+  z-index: 2;
 }
 
 .open-hint {
   position: absolute;
   left: 50%;
-  bottom: 9%;
+  bottom: 8%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -329,89 +157,21 @@
   letter-spacing: 0.08em;
 }
 
-.skip-hint {
-  position: absolute;
-  left: 50%;
-  bottom: 9%;
-  transform: translateX(-50%);
-  color: rgba(127, 79, 37, 0.65);
-  font-size: 20rpx;
-  letter-spacing: 0.12em;
-  z-index: 7;
-}
-
-.is-opening .stage-top,
-.is-opening .open-hint {
-  opacity: 0;
-  transition: opacity 220ms ease;
-}
-
-.is-opening .envelope {
-  animation: envelope-breathe 1500ms ease forwards;
-}
-
-@keyframes envelope-breathe {
-  0% {
-    opacity: 1;
-  }
-  72% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-24rpx) scale(1.03);
-  }
-}
-
-
 .motion-reduced .stage-ring,
 .motion-reduced .stage-grain {
   display: none;
 }
 
-.motion-reduced .env-flap {
-  transition-duration: 180ms;
-}
-
-.motion-reduced .env-card {
-  transition-duration: 260ms;
-  transition-delay: 80ms;
-}
-
-.motion-reduced .env-seal {
-  transition-duration: 120ms;
-}
-
-.motion-reduced .envelope {
-  animation-duration: 520ms;
-}
-
 @media (max-width: 360px) {
-  .envelope {
-    width: 560rpx;
-    height: 380rpx;
+  .stage-top {
+    top: 9%;
   }
 
-  .env-card {
-    left: 44rpx;
-    top: 108rpx;
-    width: 472rpx;
-    height: 272rpx;
+  .hint-main {
+    font-size: 22rpx;
   }
 
-  .env-front {
-    top: 144rpx;
-    width: 560rpx;
-    height: 236rpx;
-  }
-
-  .env-flap {
-    border-left-width: 280rpx;
-    border-right-width: 280rpx;
-    border-top-width: 200rpx;
-  }
-
-  .env-seal {
-    top: 132rpx;
+  .hint-sub {
+    font-size: 17rpx;
   }
 }
