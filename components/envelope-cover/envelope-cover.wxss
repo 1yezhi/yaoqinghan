@@ -97,8 +97,8 @@
   background: rgba(169, 120, 75, 0.5);
 }
 
-/* Lottie 画布：3:4 竖向舞台，居中偏上 */
-.lottie-wrap {
+/* 3:4 竖向舞台，居中偏上；内部百分比对应 Lottie 的 750×1000 坐标系 */
+.envelope-wrap {
   position: absolute;
   left: calc(50% - 21.75vh);
   top: 17%;
@@ -107,41 +107,26 @@
   z-index: 5;
 }
 
-.lottie-canvas,
-.text-canvas {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.lottie-canvas {
-  z-index: 1;
-}
-
-/* 动态姓名/日期画在独立透明画布上，避免被原生 canvas 盖住 */
-.text-canvas {
-  z-index: 3;
-}
-
-/* ---------- 静态分层兜底 ---------- */
-/* 坐标按 Lottie 的 750×1000 舞台换算成百分比，保证两套渲染位置一致 */
-.envelope-fallback {
+.envelope-art {
   position: absolute;
   left: 0;
   top: 0;
   right: 0;
   bottom: 0;
-  z-index: 2;
-  pointer-events: none;
 }
 
-.envelope-fallback image {
+.envelope-art .layer {
   position: absolute;
   display: block;
 }
 
+.envelope-art .layer image {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 图层坐标：x/750、y/1000，宽高同理 */
 .fb-shadow {
   left: 10%;
   top: 86%;
@@ -206,7 +191,106 @@
   transform-origin: center center;
 }
 
-/* ---------- 兜底开启动画，节奏与 Lottie 时间线对齐 ---------- */
+/* 动态文字：固定在舞台坐标，随信封淡出后由页面切换 */
+.letter-copy {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 8;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.letter-copy.is-opening {
+  animation: copy-in-out 0.55s ease 0.95s forwards;
+}
+
+.copy-name {
+  position: absolute;
+  left: 50%;
+  top: 49%;
+  width: 44%;
+  transform: translate(-50%, -50%);
+  color: #7a1f1a;
+  font-family: "Songti SC", "STSong", serif;
+  font-size: 2.175vh;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.copy-name.is-long {
+  font-size: 1.9vh;
+}
+
+.copy-name.is-xlong {
+  font-size: 1.65vh;
+}
+
+.copy-date {
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  transform: translate(-50%, -50%);
+  color: rgba(246, 226, 196, 0.92);
+  font-family: "Songti SC", "STSong", serif;
+  font-size: 1.2vh;
+  letter-spacing: 0.08em;
+  text-shadow: 0 1rpx 2rpx rgba(80, 10, 10, 0.35);
+}
+
+.copy-seal {
+  position: absolute;
+  left: 50%;
+  top: 65.5%;
+  width: 3.74vh;
+  height: 3.74vh;
+  margin-left: -1.87vh;
+  margin-top: -1.87vh;
+  border: 1rpx solid rgba(246, 226, 196, 0.55);
+  border-radius: 50%;
+  color: rgba(246, 226, 196, 0.92);
+  font-family: "Songti SC", "STSong", serif;
+  font-size: 1.45vh;
+  text-shadow: 0 1rpx 2rpx rgba(80, 10, 10, 0.35);
+  line-height: 3.6vh;
+  text-align: center;
+}
+
+.open-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 8%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateX(-50%);
+  z-index: 7;
+}
+
+.hint-line {
+  width: 1rpx;
+  height: 44rpx;
+  margin-bottom: 18rpx;
+  background: linear-gradient(180deg, rgba(169, 120, 75, 0), rgba(169, 120, 75, 0.65));
+}
+
+.hint-main {
+  color: #7f4f25;
+  font-size: 24rpx;
+  letter-spacing: 0.22em;
+}
+
+.hint-sub {
+  margin-top: 10rpx;
+  color: #8b7c6d;
+  font-size: 18rpx;
+  letter-spacing: 0.08em;
+}
+
+/* ---------- 开信时间线：0–1.5s ---------- */
 .is-opening .fb-sticker {
   animation: fb-sticker-out 0.34s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
@@ -223,15 +307,17 @@
   animation: fb-letter-out 0.53s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
 }
 
-.is-opening {
-  animation: fb-fade-out 0.42s ease 1.06s forwards;
+.envelope-art.is-opening {
+  animation: fb-fade-out 0.32s ease 1.18s forwards;
 }
 
+/* 减少动效：不播放位移和翻折 */
 .is-static .fb-sticker,
 .is-static .fb-flap,
 .is-static .fb-flap-back,
 .is-static .fb-letter,
-.is-static {
+.envelope-art.is-static,
+.letter-copy.is-static {
   animation: none;
 }
 
@@ -298,35 +384,21 @@
   }
 }
 
-.open-hint {
-  position: absolute;
-  left: 50%;
-  bottom: 8%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transform: translateX(-50%);
-  z-index: 7;
-}
-
-.hint-line {
-  width: 1rpx;
-  height: 44rpx;
-  margin-bottom: 18rpx;
-  background: linear-gradient(180deg, rgba(169, 120, 75, 0), rgba(169, 120, 75, 0.65));
-}
-
-.hint-main {
-  color: #7f4f25;
-  font-size: 24rpx;
-  letter-spacing: 0.22em;
-}
-
-.hint-sub {
-  margin-top: 10rpx;
-  color: #8b7c6d;
-  font-size: 18rpx;
-  letter-spacing: 0.08em;
+@keyframes copy-in-out {
+  0% {
+    opacity: 0;
+    transform: translateY(6rpx);
+  }
+  45% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 .motion-reduced .stage-ring,
