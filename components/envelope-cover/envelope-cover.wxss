@@ -35,6 +35,7 @@
   border-radius: 50%;
   background: radial-gradient(circle, rgba(255, 252, 245, 0.88), rgba(255, 252, 245, 0));
   pointer-events: none;
+  animation: glow-breathe 5.2s ease-in-out infinite;
 }
 
 .stage-ring {
@@ -72,6 +73,26 @@
   pointer-events: none;
 }
 
+/* 点击瞬间在信封背后亮起的一团暖光 */
+.stage-flash {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: 860rpx;
+  height: 860rpx;
+  margin-left: -430rpx;
+  margin-top: -430rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 232, 190, 0.72) 0%, rgba(255, 222, 170, 0) 66%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.stage-opening .stage-flash {
+  animation: flash-bloom 0.8s ease-out forwards;
+}
+
 .stage-top {
   position: absolute;
   top: 10%;
@@ -97,7 +118,7 @@
   background: rgba(169, 120, 75, 0.5);
 }
 
-/* 3:4 竖向舞台，居中偏上；内部百分比对应 Lottie 的 750×1000 坐标系 */
+/* 3:4 竖向舞台；内部百分比沿用 750×1000 坐标系 */
 .envelope-wrap {
   position: absolute;
   left: calc(50% - 21.75vh);
@@ -107,12 +128,31 @@
   z-index: 5;
 }
 
+/* 静止时的轻微呼吸浮动 */
+.envelope-float {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  animation: idle-float 5.2s ease-in-out infinite;
+}
+
+.envelope-float.is-open {
+  animation: none;
+}
+
 .envelope-art {
   position: absolute;
   left: 0;
   top: 0;
   right: 0;
   bottom: 0;
+  transition: transform 0.14s ease;
+}
+
+.is-pressed .envelope-art {
+  transform: scale(0.992);
 }
 
 .envelope-art .layer {
@@ -152,7 +192,7 @@
   width: 51.68%;
   height: 41.63%;
   z-index: 3;
-  transform: translateY(34.5%) scale(0.843);
+  transform: translateY(38.5%) scale(0.843) rotate(-1.2deg);
   transform-origin: center center;
 }
 
@@ -191,6 +231,47 @@
   transform-origin: center center;
 }
 
+/* 开信时从封口升起的一点金色尘光 */
+.dust-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 7;
+  pointer-events: none;
+}
+
+.dust {
+  position: absolute;
+  width: 5rpx;
+  height: 5rpx;
+  border-radius: 50%;
+  background: rgba(255, 230, 178, 0.9);
+  box-shadow: 0 0 6rpx rgba(255, 208, 140, 0.7);
+  opacity: 0;
+}
+
+.dust-a {
+  left: 45%;
+  top: 52.5%;
+}
+
+.dust-b {
+  left: 52%;
+  top: 51.5%;
+}
+
+.dust-c {
+  left: 48.5%;
+  top: 54%;
+}
+
+.dust-d {
+  left: 56%;
+  top: 55%;
+}
+
 /* 动态文字：固定在舞台坐标，随信封淡出后由页面切换 */
 .letter-copy {
   position: absolute;
@@ -199,12 +280,11 @@
   width: 100%;
   height: 100%;
   z-index: 8;
-  opacity: 0;
   pointer-events: none;
 }
 
 .letter-copy.is-opening {
-  animation: copy-in-out 0.55s ease 0.95s forwards;
+  animation: copy-fade-out 0.16s ease 1.34s forwards;
 }
 
 .copy-name {
@@ -219,6 +299,7 @@
   line-height: 1.3;
   letter-spacing: 0.02em;
   text-align: center;
+  opacity: 0;
 }
 
 .copy-name.is-long {
@@ -239,6 +320,7 @@
   font-size: 1.2vh;
   letter-spacing: 0.08em;
   text-shadow: 0 1rpx 2rpx rgba(80, 10, 10, 0.35);
+  opacity: 0;
 }
 
 .copy-seal {
@@ -257,6 +339,7 @@
   text-shadow: 0 1rpx 2rpx rgba(80, 10, 10, 0.35);
   line-height: 3.6vh;
   text-align: center;
+  opacity: 0;
 }
 
 .open-hint {
@@ -275,6 +358,7 @@
   height: 44rpx;
   margin-bottom: 18rpx;
   background: linear-gradient(180deg, rgba(169, 120, 75, 0), rgba(169, 120, 75, 0.65));
+  animation: hint-pulse 2.8s ease-in-out infinite;
 }
 
 .hint-main {
@@ -292,65 +376,168 @@
 
 /* ---------- 开信时间线：0–1.5s ---------- */
 .is-opening .fb-sticker {
-  animation: fb-sticker-out 0.34s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: sticker-lift 0.46s cubic-bezier(0.34, 1.3, 0.64, 1) 0.04s forwards;
 }
 
 .is-opening .fb-flap {
-  animation: fb-flap-fold 0.42s cubic-bezier(0.4, 0, 0.2, 1) 0.1s forwards;
+  animation: flap-front-fold 0.42s cubic-bezier(0.4, 0, 0.2, 1) 0.16s forwards;
 }
 
 .is-opening .fb-flap-back {
-  animation: fb-flap-rise 0.36s cubic-bezier(0.4, 0, 0.2, 1) 0.27s forwards;
+  animation: flap-back-rise 0.38s cubic-bezier(0.4, 0, 0.2, 1) 0.3s forwards;
 }
 
 .is-opening .fb-letter {
-  animation: fb-letter-out 0.53s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
+  animation: letter-rise 0.62s cubic-bezier(0.22, 1, 0.3, 1) 0.36s forwards;
+}
+
+.is-opening .fb-shadow {
+  animation: shadow-lift 0.86s ease-out 0.12s forwards;
 }
 
 .envelope-art.is-opening {
-  animation: fb-fade-out 0.32s ease 1.18s forwards;
+  animation: art-out 0.22s ease 1.28s forwards;
 }
 
-/* 减少动效：不播放位移和翻折 */
+.is-opening .copy-name {
+  animation: copy-name-in 0.3s cubic-bezier(0.22, 1, 0.3, 1) 1s forwards;
+}
+
+.is-opening .copy-date {
+  animation: copy-item-in 0.28s cubic-bezier(0.22, 1, 0.3, 1) 1.1s forwards;
+}
+
+.is-opening .copy-seal {
+  animation: copy-seal-in 0.28s cubic-bezier(0.22, 1, 0.3, 1) 1.18s forwards;
+}
+
+.stage-opening .dust-a {
+  animation: dust-rise 1s ease-out 0.5s forwards;
+}
+
+.stage-opening .dust-b {
+  animation: dust-rise 1.1s ease-out 0.58s forwards;
+}
+
+.stage-opening .dust-c {
+  animation: dust-rise 0.92s ease-out 0.64s forwards;
+}
+
+.stage-opening .dust-d {
+  animation: dust-rise 1.06s ease-out 0.72s forwards;
+}
+
+/* 减少动效：不播放位移、翻折、粒子与呼吸 */
 .is-static .fb-sticker,
 .is-static .fb-flap,
 .is-static .fb-flap-back,
 .is-static .fb-letter,
+.is-static .fb-shadow,
 .envelope-art.is-static,
-.letter-copy.is-static {
+.envelope-float.is-static,
+.letter-copy.is-static,
+.letter-copy.is-static .copy-name,
+.letter-copy.is-static .copy-date,
+.letter-copy.is-static .copy-seal,
+.motion-reduced .stage-glow,
+.motion-reduced .stage-flash,
+.motion-reduced .hint-line,
+.motion-reduced .dust {
   animation: none;
 }
 
-@keyframes fb-sticker-out {
-  0% {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
+/* ---------- 关键帧 ---------- */
+@keyframes glow-breathe {
+  0%,
+  100% {
+    opacity: 0.86;
+    transform: scale(1);
   }
-  45% {
-    transform: scale(1.16) rotate(6deg);
+  50% {
+    opacity: 1;
+    transform: scale(1.045);
+  }
+}
+
+@keyframes idle-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-0.9%);
+  }
+}
+
+@keyframes flash-bloom {
+  0% {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  28% {
     opacity: 0.9;
+    transform: scale(1);
   }
   100% {
-    transform: scale(1.16) rotate(6deg);
+    opacity: 0;
+    transform: scale(1.12);
+  }
+}
+
+@keyframes hint-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scaleY(0.86);
+    transform-origin: center bottom;
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1);
+    transform-origin: center bottom;
+  }
+}
+
+@keyframes sticker-lift {
+  0% {
+    transform: scale(0.887) rotate(0deg) translateY(0);
+    opacity: 1;
+  }
+  16% {
+    transform: scale(0.84) rotate(0deg) translateY(1.6%);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.12) rotate(-6deg) translateY(-12%);
+    opacity: 1;
+  }
+  72% {
+    opacity: 0.8;
+  }
+  84% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(1.02) rotate(-15deg) translateY(-38%);
     opacity: 0;
   }
 }
 
-@keyframes fb-flap-fold {
+@keyframes flap-front-fold {
   0% {
     transform: scaleY(1);
     opacity: 1;
   }
-  70% {
+  68% {
     opacity: 1;
   }
   100% {
-    transform: scaleY(0.01);
+    transform: scaleY(0.02);
     opacity: 0;
   }
 }
 
-@keyframes fb-flap-rise {
+@keyframes flap-back-rise {
   0% {
     transform: scaleY(0.01);
     opacity: 0;
@@ -364,40 +551,100 @@
   }
 }
 
-@keyframes fb-letter-out {
+@keyframes letter-rise {
   0% {
-    transform: translateY(34.5%) scale(0.843);
+    transform: translateY(38.5%) scale(0.843) rotate(-1.2deg);
+  }
+  58% {
+    transform: translateY(2.6%) scale(1.012) rotate(0.4deg);
+  }
+  80% {
+    transform: translateY(-0.7%) scale(0.998) rotate(0deg);
   }
   100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+}
+
+@keyframes shadow-lift {
+  0% {
+    transform: scale(1);
+    opacity: 0.95;
+  }
+  62% {
+    transform: scale(1.035, 0.94);
+    opacity: 0.82;
+  }
+  100% {
+    transform: scale(1.07, 0.86);
+    opacity: 0.55;
+  }
+}
+
+@keyframes art-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-2.2%) scale(1.018);
+  }
+}
+
+@keyframes copy-name-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(5rpx);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translateY(0);
+  }
+}
+
+@keyframes copy-item-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(4rpx);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translateY(0);
+  }
+}
+
+@keyframes copy-seal-in {
+  0% {
+    opacity: 0;
+    transform: translateY(4rpx) scale(0.9);
+  }
+  100% {
+    opacity: 1;
     transform: translateY(0) scale(1);
   }
 }
 
-@keyframes fb-fade-out {
+@keyframes copy-fade-out {
   0% {
     opacity: 1;
-    transform: translateY(0);
   }
   100% {
     opacity: 0;
-    transform: translateY(-1.5%);
   }
 }
 
-@keyframes copy-in-out {
+@keyframes dust-rise {
   0% {
     opacity: 0;
-    transform: translateY(6rpx);
+    transform: translateY(0) scale(0.6);
   }
-  45% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  75% {
-    opacity: 1;
+  22% {
+    opacity: 0.9;
   }
   100% {
     opacity: 0;
+    transform: translateY(-96rpx) scale(1);
   }
 }
 

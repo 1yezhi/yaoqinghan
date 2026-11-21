@@ -1,6 +1,9 @@
 <view
-  class="envelope-stage theme-{{theme}} {{motion === 'reduced' ? 'motion-reduced' : ''}}"
+  class="envelope-stage theme-{{theme}} {{motion === 'reduced' ? 'motion-reduced' : ''}} {{opening ? 'stage-opening' : ''}}"
   bindtap="onTap"
+  hover-class="is-pressed"
+  hover-start-time="0"
+  hover-stay-time="80"
   aria-role="button"
   aria-label="轻触开启邀请函"
 >
@@ -8,6 +11,7 @@
   <view class="stage-ring ring-one"></view>
   <view class="stage-ring ring-two"></view>
   <view class="stage-grain"></view>
+  <view class="stage-flash"></view>
 
   <view class="stage-top">
     <text class="stage-kicker">YOU ARE INVITED</text>
@@ -17,29 +21,41 @@
   <view class="envelope-wrap">
     <!-- 信封分层：全部用包内 PNG + CSS transform，避免 Canvas 图片加载问题 -->
     <view
-      class="envelope-art {{opening ? 'is-opening' : ''}} {{motion === 'reduced' ? 'is-static' : ''}}"
+      class="envelope-float {{opening ? 'is-open' : ''}} {{motion === 'reduced' ? 'is-static' : ''}}"
     >
-      <view class="layer fb-shadow">
-        <image src="/assets/envelope/shadow.png" mode="scaleToFill" />
+      <view
+        class="envelope-art {{opening ? 'is-opening' : ''}} {{motion === 'reduced' ? 'is-static' : ''}}"
+      >
+        <view class="layer fb-shadow">
+          <image src="/assets/envelope/shadow.png" mode="scaleToFill" />
+        </view>
+        <view class="layer fb-flap-back">
+          <image src="/assets/envelope/flap-back.png" mode="scaleToFill" />
+        </view>
+        <view class="layer fb-letter">
+          <image src="/assets/envelope/letter.png" mode="scaleToFill" />
+        </view>
+        <view class="layer fb-body">
+          <image src="/assets/envelope/body.png" mode="scaleToFill" />
+        </view>
+        <view class="layer fb-pocket">
+          <image src="/assets/envelope/pocket.png" mode="scaleToFill" />
+        </view>
+        <view class="layer fb-flap">
+          <image src="/assets/envelope/flap-front.png" mode="scaleToFill" />
+        </view>
+        <view class="layer fb-sticker">
+          <image src="/assets/envelope/sticker.png" mode="scaleToFill" />
+        </view>
       </view>
-      <view class="layer fb-flap-back">
-        <image src="/assets/envelope/flap-back.png" mode="scaleToFill" />
-      </view>
-      <view class="layer fb-letter">
-        <image src="/assets/envelope/letter.png" mode="scaleToFill" />
-      </view>
-      <view class="layer fb-body">
-        <image src="/assets/envelope/body.png" mode="scaleToFill" />
-      </view>
-      <view class="layer fb-pocket">
-        <image src="/assets/envelope/pocket.png" mode="scaleToFill" />
-      </view>
-      <view class="layer fb-flap">
-        <image src="/assets/envelope/flap-front.png" mode="scaleToFill" />
-      </view>
-      <view class="layer fb-sticker">
-        <image src="/assets/envelope/sticker.png" mode="scaleToFill" />
-      </view>
+    </view>
+
+    <!-- 开信时从封口升起的一点点金色尘光 -->
+    <view class="dust-layer">
+      <view class="dust dust-a"></view>
+      <view class="dust dust-b"></view>
+      <view class="dust dust-c"></view>
+      <view class="dust dust-d"></view>
     </view>
 
     <!-- 动态姓名 / 日期 / 火漆字，不烘焙进图片 -->
