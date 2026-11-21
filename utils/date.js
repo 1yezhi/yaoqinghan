@@ -2,7 +2,8 @@ const TIMEZONE_OFFSET_MINUTES = 480
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
 function pad(value) {
-  return String(value).padStart(2, '0')
+  const text = String(value)
+  return text.length >= 2 ? text : `0${text}`
 }
 
 function parseParts(value) {
@@ -15,10 +16,10 @@ function parseParts(value) {
 }
 
 function parseTimeParts(value) {
-  const parts = String(value || '').split(':').map(Number)
+  const parts = String(value === null || value === undefined ? '' : value).split(':')
   return {
-    hour: parts[0] || 0,
-    minute: parts[1] || 0
+    hour: parts.length ? Number(parts[0]) : 0,
+    minute: parts.length > 1 ? Number(parts[1]) : 0
   }
 }
 
@@ -29,8 +30,37 @@ function parseTimeParts(value) {
 function toTimestamp(dateStr, timeStr, offsetMinutes = TIMEZONE_OFFSET_MINUTES) {
   const date = parseParts(dateStr)
   const time = parseTimeParts(timeStr)
-  if (!date.year || !date.month || !date.day) return 0
-  return Date.UTC(date.year, date.month - 1, date.day, time.hour, time.minute) - offsetMinutes * 60 * 1000
+  const validDate =
+    Number.isInteger(date.year) &&
+    Number.isInteger(date.month) &&
+    Number.isInteger(date.day) &&
+    date.year >= 2000 &&
+    date.year <= 2100 &&
+    date.month >= 1 &&
+    date.month <= 12 &&
+    date.day >= 1 &&
+    date.day <= 31
+  if (!validDate) return 0
+  if (
+    !Number.isFinite(time.hour) ||
+    !Number.isFinite(time.minute) ||
+    time.hour < 0 ||
+    time.hour > 23 ||
+    time.minute < 0 ||
+    time.minute > 59
+  ) {
+    return 0
+  }
+  const timestamp = Date.UTC(date.year, date.month - 1, date.day, time.hour, time.minute)
+  const check = new Date(timestamp)
+  if (
+    check.getUTCFullYear() !== date.year ||
+    check.getUTCMonth() !== date.month - 1 ||
+    check.getUTCDate() !== date.day
+  ) {
+    return 0
+  }
+  return timestamp - offsetMinutes * 60 * 1000
 }
 
 function shiftedDate(timestamp, offsetMinutes = TIMEZONE_OFFSET_MINUTES) {
@@ -67,6 +97,7 @@ function formatTimeInput(timestamp) {
 }
 
 function formatDeadline(timestamp) {
+  if (!Number(timestamp)) return ''
   const date = shiftedDate(timestamp)
   return `${date.getUTCMonth() + 1}月${date.getUTCDate()}日 23:59`
 }

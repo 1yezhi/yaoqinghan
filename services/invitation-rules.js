@@ -131,7 +131,9 @@ function normalizeClock(value) {
   const hour = Number(matched[1])
   const minute = Number(matched[2])
   if (hour > 23 || minute > 59) return ''
-  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+  const hourText = hour < 10 ? `0${hour}` : String(hour)
+  const minuteText = minute < 10 ? `0${minute}` : String(minute)
+  return `${hourText}:${minuteText}`
 }
 
 function hasValue(value) {
@@ -212,7 +214,8 @@ function validateForm(form, step) {
       (item) =>
         item &&
         (charCount(item.time) > FIELD_LIMITS.scheduleTime ||
-          charCount(item.title) > FIELD_LIMITS.scheduleTitle)
+          charCount(item.title) > FIELD_LIMITS.scheduleTitle ||
+          charCount(item.note) > FIELD_LIMITS.scheduleNote)
     )
     if (overlong) add('schedule', '流程条目超出字数上限')
   }

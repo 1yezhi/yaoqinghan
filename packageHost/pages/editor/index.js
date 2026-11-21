@@ -46,6 +46,7 @@ Page({
   },
 
   onLoad(options) {
+    this.unloaded = false
     const id = options && options.id
     if (!id) {
       wx.showToast({ title: '缺少邀请函 ID', icon: 'none' })
@@ -75,6 +76,7 @@ Page({
   },
 
   onUnload() {
+    this.unloaded = true
     this.saveDraft(true)
   },
 
@@ -141,18 +143,24 @@ Page({
     const delta = Number(event.currentTarget.dataset.delta || 0)
     const current = Number(this.data.form.maxPartySize || 2)
     const next = Math.max(1, Math.min(6, current + delta))
-    this.setData({ 'form.maxPartySize': next })
+    const updates = { 'form.maxPartySize': next }
+    if (this.data.errors.maxPartySize) updates['errors.maxPartySize'] = ''
+    this.setData(updates)
   },
 
   async onChooseCover() {
     try {
       const files = await chooseAndPersistImages(1)
+      if (this.unloaded) return
       if (files && files[0]) {
         this.setData({ 'form.cover': files[0] })
         this.saveDraft(true)
       }
     } catch (error) {
-      // 用户取消选择时不提示
+      const message = (error && error.errMsg) || ''
+      if (message.indexOf('cancel') === -1) {
+        wx.showToast({ title: '选择图片失败', icon: 'none' })
+      }
     }
   },
 
@@ -165,6 +173,7 @@ Page({
     }
     try {
       const files = await chooseAndPersistImages(remaining)
+      if (this.unloaded) return
       const next = current.concat(
         (files || []).filter(Boolean).map((url, index) => ({
           url,
@@ -175,12 +184,16 @@ Page({
       this.setData({ 'form.gallery': next })
       this.saveDraft(true)
     } catch (error) {
-      // 用户取消选择时不提示
+      const message = (error && error.errMsg) || ''
+      if (message.indexOf('cancel') === -1) {
+        wx.showToast({ title: '选择图片失败', icon: 'none' })
+      }
     }
   },
 
   onRemoveGallery(event) {
     const index = Number(event.currentTarget.dataset.index)
+    if (!Number.isInteger(index) || index < 0) return
     const gallery = (this.data.form.gallery || []).slice()
     gallery.splice(index, 1)
     this.setData({ 'form.gallery': gallery })
@@ -199,6 +212,7 @@ Page({
 
   onRemoveSchedule(event) {
     const index = Number(event.currentTarget.dataset.index)
+    if (!Number.isInteger(index) || index < 0) return
     const schedule = (this.data.form.schedule || []).slice()
     schedule.splice(index, 1)
     this.setData({ 'form.schedule': schedule })
@@ -208,7 +222,7 @@ Page({
   onScheduleInput(event) {
     const index = Number(event.currentTarget.dataset.index)
     const field = event.currentTarget.dataset.field
-    if (!field) return
+    if (!field || !Number.isInteger(index) || index < 0) return
     const updates = { [`form.schedule[${index}].${field}`]: event.detail.value }
     if (this.data.errors.schedule) updates['errors.schedule'] = ''
     this.setData(updates)
@@ -251,6 +265,7 @@ Page({
 
   onJumpStep(event) {
     const step = Number(event.currentTarget.dataset.step || 0)
+    this.saveDraft(true)
     this.setData({ step })
   },
 
@@ -306,13 +321,16 @@ Page({
   },
 
   saveDraft(silent) {
-    if (!this.data.form || !this.config) return this.config
+    if (!this.data.form || !this.config) return null
     const next = fromEditorForm(this.data.form, this.config)
-    this.config = saveInvitation(next)
-    if (!silent) {
-      wx.showToast({ title: '草稿已保存', icon: 'success' })
+    const saved = saveInvitation(next)
+    if (saved) {
+      this.config = saved
+      if (!silent) wx.showToast({ title: '草稿已保存', icon: 'success' })
+      return saved
     }
-    return this.config
+    if (!silent) wx.showToast({ title: '保存失败，请检查存储空间', icon: 'none' })
+    return null
   },
 
   onSave() {
@@ -321,7 +339,10 @@ Page({
 
   onPreview() {
     if (!this.validateAll()) return
-    this.saveDraft(true)
+    if (!this.saveDraft(true)) {
+      wx.showToast({ title: '保存失败，请检查存储空间', icon: 'none' })
+      return
+    }
     wx.navigateTo({
       url: `/pages/invite/index?id=${this.invitationId}&preview=1`
     })
@@ -355,8 +376,15 @@ Page({
 
   onShareAppMessage() {
     const form = this.data.form || {}
+    // 草稿还没有对外发布，分享出去只会看到“准备中”，这里引导回首页
+    if (!this.config || this.config.status !== 'published') {
+      return {
+        title: form.title || '邀请函草稿',
+        path: '/pages/index/index'
+      }
+    }
     return {
-      title: (form.title || '诚挚邀请'),
+      title: form.title || '诚挚邀请',
       path: `/pages/invite/index?id=${this.invitationId}`,
       imageUrl: form.cover || ''
     }

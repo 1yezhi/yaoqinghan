@@ -50,10 +50,18 @@ const ERROR_COPY = {
   }
 }
 
+function safeDecode(value) {
+  try {
+    return decodeURIComponent(String(value || ''))
+  } catch (error) {
+    return String(value || '')
+  }
+}
+
 function parseInvitationId(options) {
-  if (options && options.id) return decodeURIComponent(options.id)
+  if (options && options.id) return safeDecode(options.id)
   if (options && options.scene) {
-    const scene = decodeURIComponent(options.scene)
+    const scene = safeDecode(options.scene)
     const matched = scene.match(/(?:^|&)i=([^&]+)/)
     if (matched) return matched[1]
     return scene
@@ -85,6 +93,7 @@ Page({
     timeText: '',
     weekdayText: '',
     cityLine: '',
+    dateTimeText: '',
     seal: '囍',
     rsvpVisible: false,
     myRsvp: null,
@@ -97,6 +106,7 @@ Page({
   },
 
   onLoad(options) {
+    this.unloaded = false
     this.invitationId = parseInvitationId(options)
     this.isPreview = options && options.preview === '1'
     this.musicVolume = 0.55
@@ -128,6 +138,7 @@ Page({
   },
 
   onUnload() {
+    this.unloaded = true
     this.clearTimers()
     this.clearFade()
     this.clearRevealTimers()
@@ -156,12 +167,14 @@ Page({
   },
 
   setMenuButtonTop() {
+    let top = 110
     try {
       const rect = wx.getMenuButtonBoundingClientRect()
-      this.setData({ musicTop: rect.bottom + 10 })
+      if (rect && Number(rect.bottom) > 0) top = Number(rect.bottom) + 10
     } catch (error) {
-      this.setData({ musicTop: 110 })
+      // 取不到胶囊位置时使用固定值
     }
+    this.setData({ musicTop: top })
   },
 
   setupAudioInterruption() {
@@ -247,8 +260,11 @@ Page({
         this.showError('empty')
         return
       }
-      const venue = config.event.venue || {}
-      const hosts = config.hosts || []
+      const venue = (config.event && config.event.venue) || {}
+      const startAt = Number(config.event && config.event.startAt) || 0
+      const hosts = (Array.isArray(config.hosts) ? config.hosts : []).filter(
+        (host) => host && host.displayName
+      )
       const names = hostLine(hosts) || config.title
       const myRsvp = getMyRsvp(config.id)
       const summary = getRsvpSummary(config.id)
@@ -262,7 +278,7 @@ Page({
       })
       const envelopeHosts = clampForDisplay(
         hosts.length > 1
-          ? `${hosts[0].displayName || ''} & ${hosts[1].displayName || ''}`
+          ? `${hosts[0].displayName} & ${hosts[1].displayName}`
           : names,
         22
       )
@@ -281,10 +297,13 @@ Page({
         progress: 0,
         invitationId: config.id,
         envelopeHosts,
-        dateText: formatDate(config.event.startAt, '.'),
-        timeText: formatTime(config.event.startAt),
-        weekdayText: weekday(config.event.startAt),
+        dateText: startAt ? formatDate(startAt, '.') : '日期待定',
+        timeText: startAt ? formatTime(startAt) : '',
+        weekdayText: startAt ? weekday(startAt) : '',
         cityLine: [venue.city, venue.name].filter(Boolean).join(' · '),
+        dateTimeText: startAt
+          ? [formatDate(startAt, '.'), formatTime(startAt)].filter(Boolean).join(' · ')
+          : '日期待定',
         seal: hosts
           .map((host) => String(host.displayName || '').trim().charAt(0))
           .filter(Boolean)
@@ -325,6 +344,7 @@ Page({
   },
 
   initAudio(music) {
+    this.clearFade()
     if (this.audio) {
       try {
         this.audio.destroy()
@@ -334,12 +354,19 @@ Page({
       this.audio = null
     }
     if (!music || !music.src) return
-    const audio = wx.createInnerAudioContext()
+    let audio = null
+    try {
+      audio = wx.createInnerAudioContext()
+    } catch (error) {
+      this.audioError = true
+      return
+    }
     audio.src = music.src
     audio.loop = true
     audio.autoplay = false
     audio.volume = 0
-    this.musicVolume = Math.max(0, Math.min(1, Number(music.volume !== undefined ? music.volume : 0.55)))
+    const volume = Number(music.volume)
+    this.musicVolume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0.55
     this.audioReady = false
     this.audioError = false
     audio.onCanplay(() => {
@@ -406,6 +433,7 @@ Page({
     query.select('.invite-flow').boundingClientRect()
     query.selectAll('.flow-block').boundingClientRect()
     query.exec((res) => {
+      if (this.unloaded) return
       const view = res && res[0]
       const flow = res && res[1]
       const list = res && res[2]
@@ -469,7 +497,8 @@ Page({
     const query = wx.createSelectorQuery()
     query.select('.invite-flow').boundingClientRect()
     query.exec((res) => {
-      if (res && res[0]) this.flowHeight = res[0].height
+      if (this.unloaded || !res || !res[0]) return
+      this.flowHeight = res[0].height
     })
   },
 
@@ -597,7 +626,11 @@ Page({
     const venue = (this.data.config && this.data.config.event && this.data.config.event.venue) || {}
     const latitude = Number(venue.lat)
     const longitude = Number(venue.lng)
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || !latitude || !longitude) {
+    if (
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      (latitude === 0 && longitude === 0)
+    ) {
       this.copyAddress()
       return
     }
@@ -618,14 +651,16 @@ Page({
       wx.showToast({ title: '暂未填写地址', icon: 'none' })
       return
     }
+    // setClipboardData 成功后系统会自带“内容已复制”提示，这里不再重复弹 toast
     wx.setClipboardData({
       data: address,
-      success: () => wx.showToast({ title: '地址已复制', icon: 'success' })
+      fail: () => wx.showToast({ title: '复制失败，请重试', icon: 'none' })
     })
   },
 
   onPreviewPhoto(event) {
     const current = event.currentTarget.dataset.url
+    if (!current) return
     const urls = this.data.galleryUrls.length ? this.data.galleryUrls : [current]
     wx.previewImage({ current, urls })
   },
@@ -654,11 +689,13 @@ Page({
   },
 
   onBackToEditor() {
-    wx.navigateBack({
-      delta: 1,
-      fail: () => {
-        wx.redirectTo({ url: `/packageHost/pages/editor/index?id=${this.invitationId}` })
-      }
-    })
+    const editorUrl = `/packageHost/pages/editor/index?id=${this.invitationId}`
+    const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : []
+    const previous = pages.length > 1 ? pages[pages.length - 2] : null
+    if (previous && previous.route === 'packageHost/pages/editor/index') {
+      wx.navigateBack({ delta: 1 })
+      return
+    }
+    wx.redirectTo({ url: editorUrl, fail: () => wx.reLaunch({ url: '/pages/index/index' }) })
   }
 })

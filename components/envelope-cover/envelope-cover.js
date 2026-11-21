@@ -18,21 +18,38 @@ Component({
 
   observers: {
     hosts(value) {
-      const length = Array.from(String(value || '')).length
-      const nameClass = length > 16 ? 'is-xlong' : length > 10 ? 'is-long' : ''
-      if (nameClass !== this.data.nameClass) {
-        this.setData({ nameClass })
+      this.updateNameClass(value)
+    }
+  },
+
+  lifetimes: {
+    attached() {
+      this.updateNameClass(this.data.hosts)
+    },
+    detached() {
+      if (this.tapTimer) {
+        clearTimeout(this.tapTimer)
+        this.tapTimer = null
       }
     }
   },
 
   methods: {
+    updateNameClass(value) {
+      const length = Array.from(String(value || '')).length
+      const nameClass = length > 16 ? 'is-xlong' : length > 10 ? 'is-long' : ''
+      if (nameClass !== this.data.nameClass) {
+        this.setData({ nameClass })
+      }
+    },
+
     onTap() {
       if (this.data.opening || this.localOpening) return
       this.localOpening = true
       this.triggerEvent('open')
-      setTimeout(() => {
+      this.tapTimer = setTimeout(() => {
         this.localOpening = false
+        this.tapTimer = null
       }, 600)
     }
   }

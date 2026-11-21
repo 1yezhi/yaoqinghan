@@ -62,8 +62,80 @@ const SECTION_TITLES = {
   thanks: '致谢'
 }
 
+const EVENT_TYPE_KEYS = EVENT_TYPES.map((item) => item.key)
+const THEME_IDS = THEMES.map((item) => item.id)
+const MOTION_MODES = ['full', 'reduced']
+const STATUSES = ['draft', 'published', 'closed', 'expired']
+
 function clone(value) {
   return JSON.parse(JSON.stringify(value))
+}
+
+function safeArray(value) {
+  return Array.isArray(value) ? value : []
+}
+
+function pick(value, allowed, fallback) {
+  return allowed.indexOf(value) >= 0 ? value : fallback
+}
+
+function finiteNumber(value, fallback) {
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : fallback
+}
+
+function clampNumber(value, min, max, fallback) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return fallback
+  return Math.max(min, Math.min(max, numeric))
+}
+
+function mediaPath(value, max = 300) {
+  if (typeof value !== 'string') return ''
+  return value.trim().slice(0, max)
+}
+
+function normalizeSections(sections) {
+  return safeArray(sections)
+    .filter((section) => section && typeof section === 'object' && typeof section.type === 'string')
+    .map((section) => {
+      const data = section.data && typeof section.data === 'object' ? section.data : {}
+      const next = Object.assign({}, section, {
+        enabled: section.enabled !== false,
+        data
+      })
+      if (data.paragraphs !== undefined) {
+        next.data.paragraphs = safeArray(data.paragraphs).filter(
+          (paragraph) => typeof paragraph === 'string' && paragraph.trim()
+        )
+      }
+      if (data.photos !== undefined) {
+        next.data.photos = safeArray(data.photos).filter(
+          (photo) => photo && typeof photo === 'object' && mediaPath(photo.url)
+        )
+      }
+      if (data.items !== undefined) {
+        next.data.items = safeArray(data.items).filter((item) => item && typeof item === 'object')
+      }
+      const stringFields = {
+        hero: ['title', 'eyebrow', 'subtitle'],
+        letter: ['title', 'signature'],
+        story: ['title'],
+        gallery: ['title'],
+        schedule: ['title'],
+        countdown: ['title', 'endedText'],
+        rsvp: ['title', 'description', 'buttonText'],
+        thanks: ['title', 'message', 'signature']
+      }
+      ;(stringFields[section.type] || []).forEach((field) => {
+        if (data[field] !== undefined && typeof data[field] !== 'string') {
+          next.data[field] = ''
+        }
+      })
+      if (data.cover !== undefined) next.data.cover = mediaPath(data.cover)
+      if (data.photo !== undefined) next.data.photo = mediaPath(data.photo)
+      return next
+    })
 }
 
 function hostLine(hosts) {
@@ -78,7 +150,9 @@ function splitParagraphs(text) {
 }
 
 function joinParagraphs(paragraphs) {
-  return (paragraphs || []).join('\n\n')
+  return safeArray(paragraphs)
+    .filter((paragraph) => typeof paragraph === 'string')
+    .join('\n\n')
 }
 
 function findSection(config, type) {
@@ -224,15 +298,17 @@ function toEditorForm(config) {
   const schedule = findSection(source, 'schedule')
   const rsvp = source.rsvp || {}
   const privacy = source.privacy || {}
-  const hosts = source.hosts || []
+  const hosts = safeArray(source.hosts)
+  const musicVolume = finiteNumber(source.music && source.music.volume, 0.55)
   return {
-    title: source.title || '',
-    eventType: source.eventType || 'wedding',
-    hostA: (hosts[0] && hosts[0].displayName) || '',
-    hostB: (hosts[1] && hosts[1].displayName) || '',
-    cover: (hero.data && hero.data.cover) || '',
-    eyebrow: (hero.data && hero.data.eyebrow) || 'YOU ARE INVITED',
-    subtitle: (hero.data && hero.data.subtitle) || '',
+    title: typeof source.title === 'string' ? source.title : '',
+    eventType: pick(source.eventType, EVENT_TYPE_KEYS, 'wedding'),
+    hostA: (hosts[0] && typeof hosts[0].displayName === 'string' && hosts[0].displayName) || '',
+    hostB: (hosts[1] && typeof hosts[1].displayName === 'string' && hosts[1].displayName) || '',
+    cover: mediaPath(hero.data && hero.data.cover),
+    eyebrow:
+      (hero.data && typeof hero.data.eyebrow === 'string' && hero.data.eyebrow) || 'YOU ARE INVITED',
+    subtitle: (hero.data && typeof hero.data.subtitle === 'string' && hero.data.subtitle) || '',
     date: event.startAt ? formatDateInput(event.startAt) : defaultDate(),
     time: event.startAt ? formatTimeInput(event.startAt) : '12:00',
     city: venue.city || '',
@@ -244,19 +320,32 @@ function toEditorForm(config) {
     letterText: joinParagraphs((letter.data && letter.data.paragraphs) || []),
     storyTitle: (story.data && story.data.title) || '我们的故事',
     storyText: joinParagraphs((story.data && story.data.paragraphs) || []),
-    storyPhoto: (story.data && story.data.photo) || '',
-    gallery: clone((gallery.data && gallery.data.photos) || []),
-    schedule: clone((schedule.data && schedule.data.items) || []),
-    themeId: (source.theme && source.theme.presetId) || 'ivory-wax',
-    motion: (source.theme && source.theme.motion) || 'full',
-    musicSrc: (source.music && source.music.src) || DEFAULT_MUSIC,
-    musicVolume: Math.round((source.music && source.music.volume !== undefined ? source.music.volume : 0.55) * 100),
+    storyPhoto: mediaPath(story.data && story.data.photo),
+    gallery: safeArray(gallery.data && gallery.data.photos)
+      .filter((photo) => photo && typeof photo === 'object' && mediaPath(photo.url))
+      .map((photo) => ({
+        url: mediaPath(photo.url),
+        thumb: mediaPath(photo.thumb) || mediaPath(photo.url),
+        alt: typeof photo.alt === 'string' ? photo.alt : ''
+      })),
+    schedule: safeArray(schedule.data && schedule.data.items)
+      .filter((item) => item && typeof item === 'object')
+      .map((item) => ({
+        time: typeof item.time === 'string' ? item.time : '',
+        title: typeof item.title === 'string' ? item.title : '',
+        note: typeof item.note === 'string' ? item.note : ''
+      })),
+    themeId: pick(source.theme && source.theme.presetId, THEME_IDS, 'ivory-wax'),
+    motion: pick(source.theme && source.theme.motion, MOTION_MODES, 'full'),
+    musicSrc: mediaPath(source.music && source.music.src) || DEFAULT_MUSIC,
+    musicVolume: Math.round(clampNumber(musicVolume, 0, 1, 0.55) * 100),
     rsvpEnabled: !!(rsvp.enabled === undefined ? true : rsvp.enabled),
     rsvpDeadline: rsvp.deadline ? formatDateInput(rsvp.deadline) : '',
     requirePhone: !!rsvp.requirePhone,
-    maxPartySize: Number(rsvp.maxPartySize || 2),
-    privacyPurpose: privacy.purpose || '用于活动回执统计、座位与餐食安排',
-    retentionDays: Number(privacy.retentionDays || 90)
+    maxPartySize: clampNumber(rsvp.maxPartySize, 1, 6, 2),
+    privacyPurpose:
+      (typeof privacy.purpose === 'string' && privacy.purpose) || '用于活动回执统计、座位与餐食安排',
+    retentionDays: Math.round(clampNumber(privacy.retentionDays, 1, 3650, 90))
   }
 }
 
@@ -271,18 +360,18 @@ function fromEditorForm(form, base = {}) {
   const title = normalizeText(source.title, 'title') || '诚挚邀请'
   const names = hostLine(hosts) || title
   const startAt = toTimestamp(source.date, source.time) || Date.now() + 30 * 24 * 60 * 60 * 1000
-  const cover = source.cover || ''
-  const gallery = (source.gallery || [])
-    .filter((photo) => photo && photo.url)
+  const cover = mediaPath(source.cover)
+  const gallery = safeArray(source.gallery)
+    .filter((photo) => photo && typeof photo === 'object' && mediaPath(photo.url))
     .slice(0, 6)
     .map((photo, index) => ({
-      url: photo.url,
-      thumb: photo.thumb || photo.url,
+      url: mediaPath(photo.url),
+      thumb: mediaPath(photo.thumb) || mediaPath(photo.url),
       alt: normalizeText(photo.alt, 'galleryAlt') || `照片 ${index + 1}`
     }))
-  const schedule = (source.schedule || [])
+  const schedule = safeArray(source.schedule)
     .map((item) => {
-      const entry = item || {}
+      const entry = item && typeof item === 'object' ? item : {}
       return {
         time: normalizeClock(entry.time) || normalizeText(entry.time, 'scheduleTime'),
         title: normalizeText(entry.title, 'scheduleTitle'),
@@ -291,20 +380,17 @@ function fromEditorForm(form, base = {}) {
     })
     .filter((item) => item.title || item.time)
     .slice(0, 8)
-  const maxPartySize = Math.max(1, Math.min(6, Number(source.maxPartySize || 2)))
+  const maxPartySize = clampNumber(source.maxPartySize, 1, 6, 2)
   const deadline = endOfDayTimestamp(source.rsvpDeadline || source.date) || startAt
   const musicSrc = normalizeText(source.musicSrc, 'musicSrc') || DEFAULT_MUSIC
-  const musicVolume =
-    source.musicVolume === undefined || source.musicVolume === null || source.musicVolume === ''
-      ? 55
-      : Number(source.musicVolume)
+  const musicVolume = clampNumber(source.musicVolume, 0, 100, 55)
 
   const config = {
     id: (base && base.id) || uid('inv'),
     schemaVersion: 1,
-    status: (base && base.status) || 'draft',
+    status: pick(base && base.status, STATUSES, 'draft'),
     title,
-    eventType: source.eventType || 'wedding',
+    eventType: pick(source.eventType, EVENT_TYPE_KEYS, 'wedding'),
     hosts,
     event: {
       startAt,
@@ -320,13 +406,13 @@ function fromEditorForm(form, base = {}) {
       }
     },
     theme: {
-      presetId: source.themeId || 'ivory-wax',
-      motion: source.motion || 'full'
+      presetId: pick(source.themeId, THEME_IDS, 'ivory-wax'),
+      motion: pick(source.motion, MOTION_MODES, 'full')
     },
     music: {
       src: musicSrc,
       title: '背景音乐',
-      volume: Math.max(0, Math.min(100, musicVolume)) / 100,
+      volume: musicVolume / 100,
       loop: true,
       license: 'demo'
     },
@@ -443,11 +529,11 @@ function fromEditorForm(form, base = {}) {
       purpose:
         normalizeText(source.privacyPurpose, 'privacyPurpose') ||
         '用于活动回执统计、座位与餐食安排',
-      retentionDays: Number(source.retentionDays || 90),
+      retentionDays: Math.round(clampNumber(source.retentionDays, 1, 3650, 90)),
       consentVersion: (base && base.privacy && base.privacy.consentVersion) || '2026-11-01'
     },
     share: {
-      title: `${title}｜${names}`,
+      title: `${title}｜${names}`.slice(0, 60),
       imageUrl: cover
     },
     createdAt: (base && base.createdAt) || Date.now(),
@@ -462,7 +548,7 @@ function fromEditorForm(form, base = {}) {
 }
 
 function storyPhoto(explicitPhoto) {
-  return explicitPhoto || ''
+  return mediaPath(explicitPhoto)
 }
 
 function coordinateValue(value) {
@@ -482,20 +568,22 @@ function lngValue(value) {
 }
 
 function visibleSections(config) {
-  const list = (config.sections || []).filter((section) => section.enabled !== false)
+  const list = safeArray(config && config.sections).filter(
+    (section) => section && typeof section === 'object' && section.enabled !== false
+  )
   return list.filter((section) => {
-    const data = section.data || {}
+    const data = section.data && typeof section.data === 'object' ? section.data : {}
     if (section.type === 'letter') {
-      return (data.paragraphs || []).length > 0
+      return safeArray(data.paragraphs).length > 0
     }
     if (section.type === 'story') {
-      return (data.paragraphs || []).length > 0 || !!data.photo
+      return safeArray(data.paragraphs).length > 0 || !!mediaPath(data.photo)
     }
     if (section.type === 'gallery') {
-      return (data.photos || []).some((photo) => photo && photo.url)
+      return safeArray(data.photos).some((photo) => photo && mediaPath(photo.url))
     }
     if (section.type === 'schedule') {
-      return (data.items || []).some((item) => item && (item.title || item.time))
+      return safeArray(data.items).some((item) => item && (item.title || item.time))
     }
     if (section.type === 'venue') {
       const venue = (config.event && config.event.venue) || {}
@@ -518,17 +606,81 @@ function visibleSections(config) {
 }
 
 function normalizeConfig(config) {
-  if (!config) return null
+  if (!config || typeof config !== 'object') return null
   const normalized = clone(config)
-  normalized.hosts = normalized.hosts || []
-  normalized.event = normalized.event || {}
-  normalized.event.venue = normalized.event.venue || {}
-  normalized.theme = normalized.theme || { presetId: 'ivory-wax', motion: 'full' }
-  normalized.music = normalized.music || { src: DEFAULT_MUSIC, volume: 0.55, loop: true }
-  normalized.rsvp = normalized.rsvp || { enabled: true, maxPartySize: 2 }
-  normalized.privacy = normalized.privacy || { purpose: '', retentionDays: 90 }
-  normalized.share = normalized.share || { title: normalized.title || '诚挚邀请', imageUrl: '' }
-  normalized.sections = normalized.sections || []
+  const event = normalized.event && typeof normalized.event === 'object' ? normalized.event : {}
+  const venue = event.venue && typeof event.venue === 'object' ? event.venue : {}
+  const theme = normalized.theme && typeof normalized.theme === 'object' ? normalized.theme : {}
+  const music = normalized.music && typeof normalized.music === 'object' ? normalized.music : {}
+  const rsvp = normalized.rsvp && typeof normalized.rsvp === 'object' ? normalized.rsvp : {}
+  const privacy =
+    normalized.privacy && typeof normalized.privacy === 'object' ? normalized.privacy : {}
+  const share = normalized.share && typeof normalized.share === 'object' ? normalized.share : {}
+  const startAt = Number(event.startAt)
+
+  normalized.id = typeof normalized.id === 'string' && normalized.id ? normalized.id : uid('inv')
+  normalized.schemaVersion = 1
+  normalized.status = pick(normalized.status, STATUSES, 'draft')
+  normalized.title = normalizeText(normalized.title, 'title') || '未命名邀请函'
+  normalized.eventType = pick(normalized.eventType, EVENT_TYPE_KEYS, 'wedding')
+  normalized.hosts = safeArray(normalized.hosts)
+    .filter((host) => host && typeof host === 'object')
+    .map((host) => Object.assign({}, host, { displayName: normalizeText(host.displayName, 'hostA') }))
+    .filter((host) => host.displayName)
+    .slice(0, 2)
+
+  normalized.event = {
+    startAt: Number.isFinite(startAt) && startAt > 0 ? startAt : 0,
+    endAt: finiteNumber(event.endAt, 0),
+    timezone: typeof event.timezone === 'string' ? event.timezone : 'Asia/Shanghai',
+    venue: {
+      name: normalizeText(venue.name, 'venueName'),
+      address: normalizeText(venue.address, 'venueAddress'),
+      city: normalizeText(venue.city, 'city'),
+      lat: latValue(venue.lat),
+      lng: lngValue(venue.lng),
+      poiId: typeof venue.poiId === 'string' ? venue.poiId : ''
+    }
+  }
+  if (!normalized.event.endAt && normalized.event.startAt) {
+    normalized.event.endAt = normalized.event.startAt + 4 * 60 * 60 * 1000
+  }
+
+  normalized.theme = {
+    presetId: pick(theme.presetId, THEME_IDS, 'ivory-wax'),
+    motion: pick(theme.motion, MOTION_MODES, 'full')
+  }
+  normalized.music = {
+    src: mediaPath(music.src) || DEFAULT_MUSIC,
+    title: typeof music.title === 'string' ? music.title.slice(0, 40) : '背景音乐',
+    volume: clampNumber(music.volume, 0, 1, 0.55),
+    loop: true,
+    license: typeof music.license === 'string' ? music.license : 'demo'
+  }
+  normalized.rsvp = {
+    enabled: rsvp.enabled === undefined ? true : !!rsvp.enabled,
+    deadline: finiteNumber(rsvp.deadline, 0),
+    requirePhone: !!rsvp.requirePhone,
+    allowPlusOne: rsvp.allowPlusOne === undefined ? true : !!rsvp.allowPlusOne,
+    maxPartySize: Math.round(clampNumber(rsvp.maxPartySize, 1, 6, 2)),
+    allowEdit: rsvp.allowEdit === undefined ? true : !!rsvp.allowEdit,
+    notifyHost: rsvp.notifyHost === undefined ? true : !!rsvp.notifyHost
+  }
+  normalized.privacy = {
+    collectFields: safeArray(privacy.collectFields).filter((field) => typeof field === 'string'),
+    purpose: normalizeText(privacy.purpose, 'privacyPurpose'),
+    retentionDays: Math.round(clampNumber(privacy.retentionDays, 1, 3650, 90)),
+    consentVersion:
+      typeof privacy.consentVersion === 'string' ? privacy.consentVersion : '2026-11-01'
+  }
+  normalized.share = {
+    title: mediaPath(share.title, 60) || normalized.title,
+    imageUrl: mediaPath(share.imageUrl)
+  }
+  normalized.sections = normalizeSections(normalized.sections)
+  normalized.createdAt = finiteNumber(normalized.createdAt, Date.now())
+  normalized.updatedAt = finiteNumber(normalized.updatedAt, normalized.createdAt)
+  normalized.publishedAt = finiteNumber(normalized.publishedAt, 0) || null
   return normalized
 }
 

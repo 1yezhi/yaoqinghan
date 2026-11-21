@@ -45,8 +45,13 @@ Component({
   methods: {
     restart() {
       this.stop()
-      this.tick()
-      if (!this.data.ended && this.data.ready) {
+      const target = Number(this.data.target || 0)
+      if (!target) {
+        this.setData({ ready: false, ended: false })
+        return
+      }
+      const ended = this.update(target)
+      if (!ended) {
         this.timer = setInterval(() => this.tick(), 1000)
       }
     },
@@ -62,8 +67,15 @@ Component({
       const target = Number(this.data.target || 0)
       if (!target) {
         this.setData({ ready: false, ended: false })
-        return
+        return true
       }
+      const ended = this.update(target)
+      if (ended) this.stop()
+      return ended
+    },
+
+    // 返回是否已结束，避免依赖 setData 之后的 this.data 判断
+    update(target) {
       const parts = diffParts(target)
       this.setData({
         ready: true,
@@ -73,7 +85,7 @@ Component({
         minutes: pad(parts.minutes),
         seconds: pad(parts.seconds)
       })
-      if (parts.ended) this.stop()
+      return parts.ended
     }
   }
 })

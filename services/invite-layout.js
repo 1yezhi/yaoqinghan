@@ -16,7 +16,9 @@ function textOf(value, field, displayMax) {
 }
 
 function paragraphsOf(section, field) {
-  const list = (section && section.data && section.data.paragraphs) || []
+  const list = section && section.data && Array.isArray(section.data.paragraphs)
+    ? section.data.paragraphs
+    : []
   return list
     .map((paragraph) => normalizeText(paragraph, field))
     .filter(Boolean)
@@ -35,8 +37,18 @@ function densityOf(chars, paragraphCount) {
 }
 
 function coordsOf(venue) {
-  const lat = Number(venue.lat)
-  const lng = Number(venue.lng)
+  if (!venue || typeof venue !== 'object') return null
+  const rawLat = venue.lat
+  const rawLng = venue.lng
+  // Number(null) === 0，必须先排除空值，否则只填经度会被当成 (0, lng) 的有效坐标
+  if (
+    rawLat === null || rawLat === undefined || rawLat === '' ||
+    rawLng === null || rawLng === undefined || rawLng === ''
+  ) {
+    return null
+  }
+  const lat = Number(rawLat)
+  const lng = Number(rawLng)
   const valid =
     Number.isFinite(lat) &&
     Number.isFinite(lng) &&
@@ -54,7 +66,9 @@ function captionOf(alt) {
 }
 
 function buildSchedule(section) {
-  const raw = (section && section.data && section.data.items) || []
+  const raw = section && section.data && Array.isArray(section.data.items)
+    ? section.data.items
+    : []
   const items = raw
     .map((entry, index) => {
       const item = entry || {}
@@ -211,7 +225,9 @@ function buildLayout(config) {
   }
 
   if (map.gallery) {
-    const photos = ((map.gallery.data && map.gallery.data.photos) || [])
+    const photos = (map.gallery.data && Array.isArray(map.gallery.data.photos)
+      ? map.gallery.data.photos
+      : [])
       .filter((photo) => photo && photo.url)
       .slice(0, 9)
       .map((photo, index) => ({
@@ -235,7 +251,7 @@ function buildLayout(config) {
   }
 
   const schedule = map.schedule ? buildSchedule(map.schedule) : null
-  const hasVenue = !!(venueData.name || venueData.address)
+  const hasVenue = !!map.venue && !!(venueData.name || venueData.address)
   const mergeDetails = !!(
     schedule &&
     schedule.items.length &&

@@ -92,10 +92,14 @@
                     >{{block.subtitle}}</text>
                     <view class="hero-date-row anim" style="transition-delay: 400ms;">
                       <text class="hero-date">{{dateText}}</text>
-                      <text class="hero-dot">·</text>
-                      <text class="hero-weekday">{{weekdayText}}</text>
-                      <text class="hero-dot">·</text>
-                      <text>{{timeText}}</text>
+                      <block wx:if="{{weekdayText}}">
+                        <text class="hero-dot">·</text>
+                        <text class="hero-weekday">{{weekdayText}}</text>
+                      </block>
+                      <block wx:if="{{timeText}}">
+                        <text class="hero-dot">·</text>
+                        <text>{{timeText}}</text>
+                      </block>
                     </view>
                     <text
                       wx:if="{{cityLine}}"
@@ -392,7 +396,7 @@
                         target="{{config.event.startAt}}"
                         ended-text="{{block.countdown.endedText}}"
                       />
-                      <text class="closing-date anim" style="transition-delay: 200ms;">{{dateText}} · {{timeText}}</text>
+                      <text class="closing-date anim" style="transition-delay: 200ms;">{{dateTimeText}}</text>
                     </block>
 
                     <view class="inner-divider" wx:if="{{block.countdown && block.rsvp}}"></view>
@@ -441,7 +445,7 @@
           <view class="flow-footer">
             <view class="footer-rule"></view>
             <text class="footer-mark">A DAY TO REMEMBER</text>
-            <text class="footer-date">{{dateText}} · {{timeText}}</text>
+            <text class="footer-date">{{dateTimeText}}</text>
             <button class="share-btn" open-type="share" wx:if="{{!preview}}">分享邀请函</button>
             <button class="share-btn" bindtap="onBackToEditor" wx:else>返回编辑</button>
           </view>

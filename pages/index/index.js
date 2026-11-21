@@ -6,8 +6,9 @@ const {
 const { formatDate } = require('../../utils/date')
 
 function coverOf(invitation) {
-  const hero = (invitation.sections || []).find((section) => section.type === 'hero')
-  return (hero && hero.data && hero.data.cover) || ''
+  const sections = Array.isArray(invitation && invitation.sections) ? invitation.sections : []
+  const hero = sections.find((section) => section && section.type === 'hero')
+  return (hero && hero.data && typeof hero.data.cover === 'string' && hero.data.cover) || ''
 }
 
 function statusText(status) {
@@ -28,12 +29,13 @@ Page({
   loadList() {
     const list = listInvitations().map((item) => {
       const summary = getRsvpSummary(item.id)
+      const startAt = Number(item.event && item.event.startAt) || 0
       return {
         id: item.id,
         title: item.title || '未命名邀请函',
         status: item.status || 'draft',
         statusText: statusText(item.status),
-        dateText: formatDate(item.event && item.event.startAt, '.'),
+        dateText: startAt ? formatDate(startAt, '.') : '日期待定',
         venueName: (item.event && item.event.venue && item.event.venue.name) || '',
         cover: coverOf(item),
         rsvpCount: summary.total,
@@ -45,10 +47,19 @@ Page({
 
   onCreate() {
     const draft = createDraft()
+    if (!draft) {
+      wx.showToast({ title: '创建失败，请检查存储空间', icon: 'none' })
+      return
+    }
     wx.navigateTo({ url: `/packageHost/pages/editor/index?id=${draft.id}` })
   },
 
   onOpenDemo() {
+    const demo = this.data.invitations.find((item) => item.id === 'demo-invitation')
+    if (!demo) {
+      wx.showToast({ title: '示例邀请函已删除', icon: 'none' })
+      return
+    }
     wx.navigateTo({ url: '/pages/invite/index?id=demo-invitation' })
   },
 

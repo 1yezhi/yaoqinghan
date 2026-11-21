@@ -55,20 +55,46 @@ Component({
    * 组件的初始数据
    */
   data: {
-    displayStyle: ''
+    displayStyle: '',
+    ios: false,
+    innerPaddingRight: '',
+    leftWidth: '',
+    safeAreaTop: ''
   },
   lifetimes: {
     attached() {
-      const rect = wx.getMenuButtonBoundingClientRect()
-      const platform = (wx.getDeviceInfo() || wx.getSystemInfoSync()).platform
+      let rect = null
+      let info = {}
+      let platform = ''
+      try {
+        rect = wx.getMenuButtonBoundingClientRect()
+      } catch (error) {
+        rect = null
+      }
+      try {
+        info = (wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync()) || {}
+      } catch (error) {
+        info = {}
+      }
+      try {
+        platform = (wx.getDeviceInfo ? wx.getDeviceInfo() : wx.getSystemInfoSync()).platform || ''
+      } catch (error) {
+        platform = ''
+      }
       const isAndroid = platform === 'android'
       const isDevtools = platform === 'devtools'
-      const { windowWidth, safeArea: { top = 0, bottom = 0 } = {} } = wx.getWindowInfo() || wx.getSystemInfoSync()
+      const windowWidth = Number(info.windowWidth) || 375
+      const safeArea = info.safeArea || {}
+      const top = Number(safeArea.top) || Number(info.statusBarHeight) || 0
+      const rightGap = rect && Number(rect.left) > 0 ? Math.max(0, windowWidth - Number(rect.left)) : 0
       this.setData({
         ios: !isAndroid,
-        innerPaddingRight: `padding-right: ${windowWidth - rect.left}px`,
-        leftWidth: `width: ${windowWidth - rect.left}px`,
-        safeAreaTop: isDevtools || isAndroid ? `height: calc(var(--height) + ${top}px); padding-top: ${top}px` : ``
+        innerPaddingRight: `padding-right: ${rightGap}px`,
+        leftWidth: `width: ${rightGap}px`,
+        safeAreaTop:
+          isDevtools || isAndroid
+            ? `height: calc(var(--height) + ${top}px); padding-top: ${top}px`
+            : ''
       })
     },
   },
@@ -93,7 +119,8 @@ Component({
       const data = this.data
       if (data.delta) {
         wx.navigateBack({
-          delta: data.delta
+          delta: data.delta,
+          fail: () => wx.reLaunch({ url: '/pages/index/index' })
         })
       }
       this.triggerEvent('back', { delta: data.delta }, {})

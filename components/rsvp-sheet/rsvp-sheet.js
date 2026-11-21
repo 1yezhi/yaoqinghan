@@ -76,8 +76,9 @@ Component({
   methods: {
     syncConfig() {
       const config = this.data.config || {}
+      const maxPartySize = Math.max(1, Math.min(6, Number(config.maxPartySize) || 2))
       this.setData({
-        maxPartySize: Math.max(1, Number(config.maxPartySize || 2)),
+        maxPartySize,
         requirePhone: !!config.requirePhone,
         deadlineText: config.deadline ? formatDeadline(config.deadline) : ''
       })
@@ -94,14 +95,20 @@ Component({
 
     fillForm() {
       const existing = this.data.existing
-      const maxPartySize = Math.max(1, Number((this.data.config && this.data.config.maxPartySize) || 2))
+      const maxPartySize = Math.max(
+        1,
+        Math.min(6, Number((this.data.config && this.data.config.maxPartySize) || 2))
+      )
       if (existing) {
+        const existingSize = Number(existing.partySize)
         this.setData({
           form: {
             name: existing.name || '',
             phone: existing.phone || '',
             attendance: existing.attendance === 'no' ? 'no' : 'yes',
-            partySize: Math.max(1, Math.min(maxPartySize, Number(existing.partySize || 1))),
+            partySize: Number.isFinite(existingSize)
+              ? Math.max(1, Math.min(maxPartySize, Math.floor(existingSize)))
+              : 1,
             dietary: existing.dietary || '',
             message: existing.message || '',
             consent: !!existing.consent
@@ -206,6 +213,7 @@ Component({
       this.setData({ submitting: true })
       try {
         const saved = saveRsvp(this.data.invitationId, this.data.form)
+        if (!saved) throw new Error('save failed')
         this.setData({
           submitting: false,
           success: true,

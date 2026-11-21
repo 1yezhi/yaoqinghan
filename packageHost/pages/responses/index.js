@@ -4,6 +4,7 @@ const {
   getRsvpSummary
 } = require('../../../services/invitation-store')
 const { formatDateTime } = require('../../../utils/date')
+const { toCsv } = require('../../../utils/csv')
 
 function maskPhone(phone) {
   const value = String(phone || '').trim()
@@ -33,7 +34,6 @@ Page({
       setTimeout(() => wx.navigateBack({ fail: () => wx.reLaunch({ url: '/pages/index/index' }) }), 500)
       return
     }
-    this.loadResponses()
   },
 
   onShow() {
@@ -43,15 +43,24 @@ Page({
   loadResponses() {
     const invitation = getInvitation(this.invitationId)
     if (!invitation) {
-      wx.showToast({ title: '邀请函不存在', icon: 'none' })
+      if (!this.missingNotified) {
+        this.missingNotified = true
+        wx.showToast({ title: '邀请函不存在', icon: 'none' })
+        setTimeout(() => {
+          wx.navigateBack({ fail: () => wx.reLaunch({ url: '/pages/index/index' }) })
+        }, 600)
+      }
       return
     }
-    const list = listRsvps(this.invitationId).map((item) => ({
-      ...item,
-      attendanceText: attendanceText(item),
-      phoneMasked: maskPhone(item.phone),
-      timeText: formatDateTime(item.updatedAt || item.createdAt)
-    }))
+    const list = listRsvps(this.invitationId).map((item) => {
+      const timestamp = Number(item.updatedAt || item.createdAt) || 0
+      return {
+        ...item,
+        attendanceText: attendanceText(item),
+        phoneMasked: maskPhone(item.phone),
+        timeText: timestamp ? formatDateTime(timestamp) : ''
+      }
+    })
     const summary = getRsvpSummary(this.invitationId)
     const filterTabs = [
       { key: 'all', label: '全部', count: summary.total },
@@ -94,12 +103,10 @@ Page({
       item.message || '',
       item.timeText
     ])
-    const csv = '\uFEFF' + [header, ...rows]
-      .map((row) => row.map((cell) => `"${String(cell === undefined ? '' : cell).replace(/"/g, '""')}"`).join(','))
-      .join('\n')
+    const csv = toCsv([header, ...rows])
     wx.setClipboardData({
       data: csv,
-      success: () => wx.showToast({ title: '名单已复制', icon: 'success' })
+      fail: () => wx.showToast({ title: '复制失败，请重试', icon: 'none' })
     })
   }
 })
